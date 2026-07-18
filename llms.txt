@@ -1,0 +1,39 @@
+# Alkanes | Bitcoin Universe Protocol Reference
+
+> Human docs: index.html
+> Field reference: reference.html
+> Network: Bitcoin
+> Classification: Bitcoin smart contracts and DeFi
+
+## Summary
+
+A WebAssembly smart contract metaprotocol built on Protorunes, with execution and state indexed from Bitcoin transactions.
+
+## State model
+
+Rust-authored WASM contracts, deployed through Ordinals and interpreted by the Alkanes and Metashrew stack.
+
+## Lifecycle
+
+1. Write Rust
+2. Compile WASM
+3. Deploy Alkane
+4. Call contract
+
+## Operations
+
+- Deploy: Publishes a contract binary and establishes an Alkane identity.
+- Call: Invokes a contract method with protocol-defined inputs and transaction context.
+- Index: Metashrew processes blocks and exposes contract state to apps and APIs.
+- Compose: Contracts can consume and produce protocol assets within their declared logic.
+
+## Safety
+
+1. An Alkane call is not interchangeable with a generic token transfer. Review the contract source and method semantics first.
+2. WASM correctness, indexer behavior, and wallet transaction construction all matter. Test on a non-production environment where available.
+3. Treat contract IDs, ABI assumptions, and API responses as versioned integration inputs.
+
+## Sources
+
+- Alkanes documentation: https://alkanes.build/en/docs
+- Alkanes source: https://github.com/sandshrewmetaprotocols/alkanes
