@@ -1,24 +1,35 @@
 # Alkanes documentation
 
-A standalone Bitcoin Universe documentation site for Alkanes.
+Bitcoin Universe documentation for Alkanes on Bitcoin.
 
-## Included
+## What this covers
 
-- `index.html`: visual protocol overview, lifecycle, payload examples, and safety guidance
-- `reference.html`: field reference and integration checklist
-- `llms.txt`: compact machine-readable protocol summary
+Alkanes lets developers deploy WebAssembly contracts and invoke them through Bitcoin transactions. The contract layer is indexed by Metashrew and exposed to applications through Subfrost-compatible APIs.
+
+## State model
+
+This is a contract protocol, not a JSON ticker protocol. Build artifacts, contract IDs, calldata, and simulation results must all be handled as versioned binary interfaces.
+
+## Documentation site
+
+- Overview: [index.html](index.html)
+- Field reference: [reference.html](reference.html)
+- Build and verification playbook: [guide.html](guide.html)
+
+## Core rules
+
+- Use the compiler target and dependency versions supported by the active Alkanes toolchain.
+- A contract ID is part of the call identity. Never substitute a display name for it.
+- WASM bytecode and calldata are protocol inputs, so reproducible builds matter.
+- The indexer view is needed to read contract state and token balances.
+- Transaction fees and UTXO selection are still Bitcoin concerns outside contract business logic.
+- A simulation result is a preflight result, not a confirmed state transition.
+
+## Source material
+
+- [Alkanes developer docs](https://alkanes.build/en/docs)
+- [Alkanes reference implementation](https://github.com/sandshrewmetaprotocols/alkanes)
 
 ## Scope
 
-A WebAssembly smart contract metaprotocol built on Protorunes, with execution and state indexed from Bitcoin transactions.
-
-This repository is a navigational integration guide. The linked primary sources and their active reference implementations are authoritative.
-
-## Sources
-
-- [Alkanes documentation](https://alkanes.build/en/docs)
-- [Alkanes source](https://github.com/sandshrewmetaprotocols/alkanes)
-
-## Local preview
-
-Open `index.html` in a browser, or serve this directory with any static file server. GitHub Pages can publish directly from the repository root.
+For binary interfaces, source and deployed artifact are the real documentation. Preserve versions, hashes, and test vectors alongside every integration.

@@ -1,39 +1,50 @@
-# Alkanes | Bitcoin Universe Protocol Reference
+# Alkanes
 
-> Human docs: index.html
-> Field reference: reference.html
-> Network: Bitcoin
-> Classification: Bitcoin smart contracts and DeFi
+> WebAssembly contracts for Bitcoin, built on Protorunes.
 
-## Summary
+## Chain and carrier
 
-A WebAssembly smart contract metaprotocol built on Protorunes, with execution and state indexed from Bitcoin transactions.
+- Chain: Bitcoin
+- Carrier: WASM contract and Bitcoin transaction
+
+## Overview
+
+Alkanes lets developers deploy WebAssembly contracts and invoke them through Bitcoin transactions. The contract layer is indexed by Metashrew and exposed to applications through Subfrost-compatible APIs.
 
 ## State model
 
-Rust-authored WASM contracts, deployed through Ordinals and interpreted by the Alkanes and Metashrew stack.
+This is a contract protocol, not a JSON ticker protocol. Build artifacts, contract IDs, calldata, and simulation results must all be handled as versioned binary interfaces.
 
 ## Lifecycle
 
-1. Write Rust
-2. Compile WASM
-3. Deploy Alkane
-4. Call contract
+1. Write the contract against the current Alkanes Rust interface.
+2. Compile a deterministic wasm32-unknown-unknown artifact.
+3. Inscribe or deploy the artifact and record the resulting contract ID.
+4. Encode a call, fund the Bitcoin transaction, and simulate before broadcast.
 
-## Operations
+## Rules
 
-- Deploy: Publishes a contract binary and establishes an Alkane identity.
-- Call: Invokes a contract method with protocol-defined inputs and transaction context.
-- Index: Metashrew processes blocks and exposes contract state to apps and APIs.
-- Compose: Contracts can consume and produce protocol assets within their declared logic.
+- Use the compiler target and dependency versions supported by the active Alkanes toolchain.
+- A contract ID is part of the call identity. Never substitute a display name for it.
+- WASM bytecode and calldata are protocol inputs, so reproducible builds matter.
+- The indexer view is needed to read contract state and token balances.
+- Transaction fees and UTXO selection are still Bitcoin concerns outside contract business logic.
+- A simulation result is a preflight result, not a confirmed state transition.
 
-## Safety
+## Field reference
 
-1. An Alkane call is not interchangeable with a generic token transfer. Review the contract source and method semantics first.
-2. WASM correctness, indexer behavior, and wallet transaction construction all matter. Test on a non-production environment where available.
-3. Treat contract IDs, ABI assumptions, and API responses as versioned integration inputs.
+- contract ID (protocol identifier, required: yes): The deployed contract target.
+- selector (encoded method selector, required: yes): Identifies the public contract entrypoint.
+- calldata (binary, required: yes): Arguments encoded for the matching ABI and version.
+- assets (protocol assets, required: no): Assets transferred into the call context.
+- Bitcoin inputs (UTXOs, required: yes): Funds the transaction and any required state transition.
+- network (chain context, required: yes): Mainnet, signet, or test environment must match deployment.
 
-## Sources
+## Primary sources
 
-- Alkanes documentation: https://alkanes.build/en/docs
-- Alkanes source: https://github.com/sandshrewmetaprotocols/alkanes
+- Alkanes developer docs: https://alkanes.build/en/docs
+- Alkanes reference implementation: https://github.com/sandshrewmetaprotocols/alkanes
+
+## Operational caution
+
+For binary interfaces, source and deployed artifact are the real documentation. Preserve versions, hashes, and test vectors alongside every integration.
