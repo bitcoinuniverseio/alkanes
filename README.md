@@ -1,35 +1,23 @@
-# Alkanes documentation
+# Alkanes
 
-Bitcoin Universe documentation for Alkanes on Bitcoin.
+Programmable Bitcoin, unlocked.
 
-## What this covers
+Alkanes brings WebAssembly-powered contracts to Bitcoin through Protorunes. It gives creators a richer canvas for assets, applications, and shared on-chain experiences while keeping every interaction anchored to Bitcoin.
 
-Alkanes lets developers deploy WebAssembly contracts and invoke them through Bitcoin transactions. The contract layer is indexed by Metashrew and exposed to applications through Subfrost-compatible APIs.
+## Explore
 
-## State model
+- [Enter the Alkanes experience](https://bitcoinuniverse.github.io/alkanes/)
+- [Visit Alkanes](https://alkanes.build/)
+- [Discover Bitcoin Universe](https://github.com/bitcoinuniverse)
 
-This is a contract protocol, not a JSON ticker protocol. Build artifacts, contract IDs, calldata, and simulation results must all be handled as versioned binary interfaces.
+## What makes it powerful
 
-## Documentation site
+- **Expressive by design.** WebAssembly opens the door to stateful experiences that go far beyond a simple ticker.
+- **Rooted in Bitcoin.** Interactions travel through Bitcoin transactions and inherit Bitcoin's public history.
+- **Easy to follow.** Contract identity, assets, and resulting state remain visible across the experience.
 
-- Overview: [index.html](index.html)
-- Field reference: [reference.html](reference.html)
-- Build and verification playbook: [guide.html](guide.html)
+## Stay in control
 
-## Core rules
+Every on-chain action is final once confirmed. Check the network, contract identity, assets, recipient, and miner fee in your wallet before signing. A preview is helpful, but only a confirmed transaction changes on-chain state.
 
-- Use the compiler target and dependency versions supported by the active Alkanes toolchain.
-- A contract ID is part of the call identity. Never substitute a display name for it.
-- WASM bytecode and calldata are protocol inputs, so reproducible builds matter.
-- The indexer view is needed to read contract state and token balances.
-- Transaction fees and UTXO selection are still Bitcoin concerns outside contract business logic.
-- A simulation result is a preflight result, not a confirmed state transition.
-
-## Source material
-
-- [Alkanes developer docs](https://alkanes.build/en/docs)
-- [Alkanes reference implementation](https://github.com/sandshrewmetaprotocols/alkanes)
-
-## Scope
-
-For binary interfaces, source and deployed artifact are the real documentation. Preserve versions, hashes, and test vectors alongside every integration.
+This repository powers the Alkanes story from Bitcoin Universe.
