@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Alkanes">
+  <rect width="32" height="32" rx="6" fill="#04161c"/>
+  <path d="M5 22 L11 10 L17 22 L23 10 L27 18" fill="none" stroke="#e8f2f2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="23" cy="10" r="3.6" fill="#47ce8b"/>
+</svg>

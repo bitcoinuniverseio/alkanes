@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Test vectors | Alkanes</title>
+<meta name="description" content="Valid and invalid Alkanes protostone test vectors with script hex, decoded integers, and expected indexer outcomes, derived from alkanes-rs and round-tripped.">
+<link rel="canonical" href="https://bitcoinuniverseio.github.io/alkanes/test-vectors.html">
+<link rel="search-base" href="./">
+<meta name="theme-color" content="#fbfcfb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#04161c" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Alkanes protocol documentation">
+<meta property="og:title" content="Alkanes test vectors">
+<meta property="og:description" content="Valid and invalid protostone vectors with expected outcomes, derived from alkanes-rs.">
+<meta property="og:url" content="https://bitcoinuniverseio.github.io/alkanes/test-vectors.html">
+<meta property="og:image" content="https://bitcoinuniverseio.github.io/alkanes/og.svg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
+<script src="site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead-in">
+    <a class="wordmark" href="./">
+      <svg width="34" height="20" viewBox="0 0 34 20" aria-hidden="true" focusable="false">
+        <path d="M2 15 L9 5 L16 15 L23 5 L30 15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="23" cy="5" r="3.2" fill="var(--accent)"/>
+      </svg>
+      Alkanes <small>protocol docs</small>
+    </a>
+    <nav aria-label="Primary">
+      <a href="./">Overview</a>
+      <a href="encoding.html">Encoding</a>
+      <a href="specification.html">Specification</a>
+      <a href="guide.html">Guide</a>
+      <a href="reference.html">Reference</a>
+      <a href="test-vectors.html" aria-current="page">Test vectors</a>
+      <a href="tool.html">Tool</a>
+      <a href="changelog.html">Changelog</a>
+    </nav>
+    <div class="mast-tools">
+      <div class="search-wrap" id="search-wrap" hidden>
+        <span class="slash" aria-hidden="true">/</span>
+        <label class="skip" for="search-input">Search this documentation</label>
+        <input id="search-input" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-controls="search-results">
+        <ul id="search-results" aria-label="Search results"></ul>
+      </div>
+      <button class="ghost" id="theme-toggle" hidden>Dark</button>
+    </div>
+  </div>
+</header>
+
+<div class="page with-rail">
+<aside class="rail">
+  <h2>On this page</h2>
+  <ol>
+    <li><a href="#how">How to use these</a></li>
+    <li><a href="#valid">Valid vectors</a></li>
+    <li><a href="#upstream">From the alkanes-rs tests</a></li>
+    <li><a href="#invalid">Invalid vectors</a></li>
+    <li><a href="#reproduce">Reproducing these</a></li>
+  </ol>
+  <h2>Related</h2>
+  <ol>
+    <li><a href="encoding.html">Byte-level encoding</a></li>
+    <li><a href="tool.html">Decoder</a></li>
+  </ol>
+</aside>
+
+<main id="main">
+
+<p class="eyebrow">Conformance</p>
+<h1>Test vectors</h1>
+<p class="lede">Every vector below was produced by encoding the stated inputs with the alkanes-rs encoding rules
+  and then decoding the result back, so the script hex and the decoded integers are known to agree. The invalid
+  vectors state what the reference implementation actually does, which in several cases is to fail silently.</p>
+
+<h2 id="how">How to use these</h2>
+<ul>
+  <li>Feed the script hex to your decoder and compare against the decoded integers column.</li>
+  <li>Feed the inputs to your encoder and compare against the script hex.</li>
+  <li>For the invalid cases, check that your implementation reproduces the stated outcome, including the cases
+    where the correct behaviour is to produce no error.</li>
+  <li>Any of them can be pasted into <a href="tool.html">the decoder on this site</a>.</li>
+</ul>
+<p class="small muted">All vectors use protocol tag 1 unless stated otherwise. Amounts are raw base units.</p>
+
+<h2 id="valid">Valid vectors</h2>
+
+<h3 id="v1">V1. Single edict transfer</h3>
+<p>Move <code>100000000</code> of alkane <code>2:1</code> to output 1.</p>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Protostone integers</th><td><code>[1, 5, 0, 2, 1, 100000000, 1]</code></td></tr>
+      <tr><th>Inner LEB128</th><td><code>010500020180c2d72f01</code></td></tr>
+      <tr><th>Runestone integers</th><td><code>[16383, 5604910583939447391489]</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d0dff7f818a80909080a0e1d7df04</code></td></tr>
+      <tr><th>Expected</th><td>100000000 of 2:1 assigned to output 1; any remaining balance follows the default assignment.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="v2">V2. Same transfer to output 0</h3>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Protostone integers</th><td><code>[1, 5, 0, 2, 1, 100000000, 0]</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d0cff7f818a80909080a0e1d75f</code></td></tr>
+      <tr><th>Expected</th><td>Same transfer, output 0. Included because it differs from V1 in both tail bytes and total length, which catches encoders that assume a fixed size.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="v3">V3. Sweep the whole balance</h3>
+<p>Amount <code>0</code> means the entire remaining balance.</p>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Protostone integers</th><td><code>[1, 5, 0, 2, 1, 0, 0]</code></td></tr>
+      <tr><th>Inner LEB128</th><td><code>01050002010000</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d07ff7f818a809010</code></td></tr>
+      <tr><th>Expected</th><td>The entire balance of 2:1 goes to output 0.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="v4">V4. Transfer plus change sweep</h3>
+<p>Two edicts on the same id, so the second delta pair is <code>0, 0</code>.</p>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Protostone integers</th><td><code>[1, 9, 0, 2, 1, 100000000, 0, 0, 0, 0, 1]</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d11ff7f819280909080a0e1d7df8080808040</code></td></tr>
+      <tr><th>Expected</th><td>100000000 of 2:1 to output 0, then everything remaining to output 1.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="v5">V5. Two edicts on different ids</h3>
+<p>Ids are sorted then delta encoded, so <code>2:5</code> after <code>2:1</code> encodes as <code>0, 4</code>.</p>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Protostone integers</th><td><code>[1, 9, 0, 2, 1, 50000000, 1, 0, 4, 25000000, 1]</code></td></tr>
+      <tr><th>Inner LEB128</th><td><code>010900020180e1eb17010004c0f0f50b01</code></td></tr>
+      <tr><th>Chunks</th><td><code>[1276995721691057111568520951759898881, 267]</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d18ff7f819280909080e0f0ebaf8480c080b0f8f501ff7f8b02</code></td></tr>
+      <tr><th>Expected</th><td>50000000 of 2:1 and 25000000 of 2:5, both to output 1. Two chunks, so two tag 16383 fields.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="v6">V6. Contract call</h3>
+<p>Cellpack <code>[2, 1, 77]</code>, pointer 0, refund pointer 1.</p>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Cellpack LEB128</th><td><code>02014d</code></td></tr>
+      <tr><th>Protostone integers</th><td><code>[1, 6, 91, 0, 93, 1, 81, 5046530]</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d0eff7f818cec82d0abc0a88285d215</code></td></tr>
+      <tr><th>Expected calldata</th><td><code>02014d000000000000000000000000</code>, decoding to target <code>2:1</code> and inputs <code>[77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]</code>.</td></tr>
+      <tr><th>Expected</th><td>Message runs against 2:1 with opcode 77. Result to output 0, refund to output 1.</td></tr>
+    </tbody>
+  </table>
+</div>
+<p class="small muted">V6 is the vector to check zero padding against. An implementation that trims trailing zeros
+  from the calldata will disagree with alkanes-rs.</p>
+
+<h3 id="v7">V7. CREATE deployment</h3>
+<p>Cellpack <code>[1, 0, 0]</code>: target <code>1:0</code>, opcode 0. The binary travels in the witness.</p>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Protostone integers</th><td><code>[1, 6, 91, 0, 93, 0, 81, 1]</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d0bff7f818cec82d08bc0a801</code></td></tr>
+      <tr><th>Expected</th><td>New contract at <code>2:&lt;next sequence&gt;</code>, initialised with opcode 0.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="v8">V8. Factory clone</h3>
+<p>Cellpack <code>[6, 65517, 0]</code>: clone reserved template 65517.</p>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Protostone integers</th><td><code>[1, 6, 91, 0, 93, 1, 81, 67104006]</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d0fff7f818cec82d0abc0a886b5ffff01</code></td></tr>
+      <tr><th>Expected</th><td>New contract at <code>2:&lt;next sequence&gt;</code> storing a pointer to the template rather than a copy of the code.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="v9">V9. Two protostones in one runestone</h3>
+<p>An edict record followed by a message record.</p>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Protostone integers</th><td><code>[1, 5, 0, 2, 1, 1000, 0, 1, 6, 91, 0, 93, 1, 81, 5046530]</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d19ff7f818a80909080fa83808298d885a0d78051ff7f8285d215</code></td></tr>
+      <tr><th>Expected</th><td>Two records decode. All input balances go to the first record's virtual output, because it is the first with tag 1. Records then process in order.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="v10">V10. Real mainnet payload</h3>
+<p>Captured in the alkanes-rs corpus. A call to the fr-BTC system contract.</p>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d101600ff7f818cec8ad0abc0a8a081d215</code></td></tr>
+      <tr><th>Runestone integers</th><td><code>[22, 0, 16383, 3270250341403247458846209]</code></td></tr>
+      <tr><th>Runes-layer fields</th><td>Tag 22 Pointer = 0</td></tr>
+      <tr><th>Protostone integers</th><td><code>[1, 6, 91, 1, 93, 1, 81, 5046304]</code></td></tr>
+      <tr><th>Cellpack</th><td>target <code>32:0</code>, opcode <code>77</code></td></tr>
+      <tr><th>Expected</th><td>Message to fr-BTC with opcode 77. Pointer and refund pointer both output 1. Note that a Runes-layer field can sit alongside a protostone in the same runestone.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2 id="upstream">From the alkanes-rs tests</h2>
+<p>These four are the protostone round-trip cases in
+  <code>crates/protorune/src/protostone.rs</code>. The upstream tests assert that encipher followed by decipher
+  returns the same structure; the script hex below is what those structures encode to when wrapped in a
+  runestone.</p>
+
+<h3 id="u1">U1. Protoburn record, protocol tag 13</h3>
+<p>The doc comment above these tests spells out the intended byte layout as
+  <code>[1 4 83 0 91 3 0 0 0 0 0 0 0 0 0 0]</code> for a tag 1 variant, which is the clearest statement in the
+  repository of the 15-byte rule.</p>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Structure</th><td>burn 1, pointer 3, protocol tag 13, no edicts, no message</td></tr>
+      <tr><th>Protostone integers</th><td><code>[13, 4, 83, 1, 91, 3]</code></td></tr>
+      <tr><th>Inner LEB128</th><td><code>0d0453015b03</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d08ff7f8d88cc8ab06b</code></td></tr>
+      <tr><th>Expected</th><td>Decodes as one record with tag 13, Burn = 1, ProtoPointer = 3. The alkanes indexer does not act on it: tag 13 is not 1, and protoburn processing is not compiled into the released indexer.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="u2">U2. Edict record with a burn field</h3>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Structure</th><td>burn 0, pointer 3, tag 1, edict <code>8400000:1</code> amount 123456789 to output 2</td></tr>
+      <tr><th>Protostone integers</th><td><code>[1, 9, 83, 0, 91, 3, 0, 8400000, 1, 123456789, 2]</code></td></tr>
+      <tr><th>Inner LEB128</th><td><code>010953005b030080d9800401959aef3a02</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d18ff7f8192cc82b0eb808080b383a490a0a5cdef01ff7fba04</code></td></tr>
+      <tr><th>Expected</th><td>Edict for <code>8400000:1</code>, amount 123456789, output 2. Field order inside a record is burn, pointer, refund, from, message, then body.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="u3">U3. A message that fills exactly one chunk</h3>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Structure</th><td>pointer 3, tag 1, message bytes <code>[0,1,2,3,4,5,6,7,8,0,0,0,0,0,0]</code></td></tr>
+      <tr><th>Protostone integers</th><td><code>[1, 4, 91, 3, 81, 148080050112590643456]</code></td></tr>
+      <tr><th>Inner LEB128</th><td><code>01045b035180828898c0a081838710</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d13ff7f8188ec9a908aa0c188b182869af0e0c310</code></td></tr>
+      <tr><th>Expected</th><td>One message chunk. The trailing zeros in the message are part of the payload here, which is exactly why the decoder must not trim them.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="u4">U4. Two records with different protocol tags</h3>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Structure</th><td>tag 13 with burn 1 and pointer 3, then tag 3 with burn 1, pointer 2, and a 15-byte message</td></tr>
+      <tr><th>Protostone integers</th><td><code>[13, 4, 83, 1, 91, 3, 3, 6, 83, 1, 91, 2, 81, 2185179317232829729636]</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d20ff7f8d88cc8ab0ebc08186a685d8a5a094f29601ff7fc0979ef5ced3eefaec03</code></td></tr>
+      <tr><th>Expected</th><td>Two records decode cleanly. Neither has tag 1, so from the alkanes indexer's point of view nothing claims the input balances.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2 id="invalid">Invalid vectors</h2>
+<div class="danger">
+  <span class="t">Most of these do not raise an error</span>
+  <p>That is the point. An implementation is only correct if it reproduces the silence too. The "expected"
+    column below is the reference implementation's real behaviour, not the behaviour you might wish for.</p>
+</div>
+
+<h3 id="i1">I1. JSON in a bare OP_RETURN</h3>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Payload</th><td><code>{"p":"alkanes","op":"transfer","id":"2:1","amt":"1"}</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a347b2270223a22616c6b616e6573222c226f70223a227472616e73666572222c226964223a22323a31222c22616d74223a2231227d</code></td></tr>
+      <tr><th>Expected</th><td>Second byte is <code>0x34</code>, a data push, not <code>0x5d</code>. Not a runestone. No protostone is read, no protorune balance moves, and no input balance is cleared. The alkanes stay recorded against the spent outpoint and are unreachable.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="i2">I2. Runestone with no protocol field</h3>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d021600</code></td></tr>
+      <tr><th>Runestone integers</th><td><code>[22, 0]</code></td></tr>
+      <tr><th>Expected</th><td>A valid runestone with a Runes-layer pointer and no tag 16383 field. No protostones decode, so alkanes processing does not run and input balances are not cleared. Stranded, not burned.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="i3">I3. Right envelope, wrong protocol tag</h3>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Protostone integers</th><td><code>[13, 5, 0, 2, 1, 100000000, 1]</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d0dff7f8d8a80909080a0e1d7df04</code></td></tr>
+      <tr><th>Expected</th><td>One record decodes with protocol tag 13. Protostone processing runs because a protostone exists, but no record has tag 1, so no virtual output receives the input balances. At the end of processing every input's balance sheet is cleared regardless. <strong>The alkanes are destroyed, not stranded.</strong></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="i4">I4. Edict body of three values</h3>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Protostone integers</th><td><code>[1, 4, 0, 2, 1, 100]</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d09ff7f81888090908019</code></td></tr>
+      <tr><th>Expected</th><td><code>protostone_edicts_from_integers</code> returns <em>edict values did not appear in sets of four</em>. <code>from_fields_and_tag</code> discards that error, so the record is valid with an <strong>empty</strong> edict list. No error surfaces anywhere. The intended transfer does not happen and the balance follows the default assignment.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="i5">I5. Record length overruns the payload</h3>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Protostone integers</th><td><code>[1, 20, 0, 2, 1, 100, 1]</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d09ff7f81a88090908059</code></td></tr>
+      <tr><th>Expected</th><td>The record declares 20 values but fewer remain after the zero padding is counted. Decoding fails with <em>less values than expected</em> and the entire protostone list is rejected. Nothing is processed and no balance is cleared.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="i6">I6. Message without a refund pointer</h3>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Protostone integers</th><td><code>[1, 4, 91, 0, 81, 5046530]</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d0cff7f8188ec8290caa0c1b405</code></td></tr>
+      <tr><th>Expected</th><td>The record decodes with ProtoPointer but no Refund. <code>process_message</code> returns <em>Missing refund pointer</em>, which propagates and aborts protostone processing for the transaction rather than refunding. Not a soft failure.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="i7">I7. Cellpack shorter than two values</h3>
+<p>The calldata is fifteen bytes of continued LEB128, <code>[0x80 &times; 14, 0x01]</code>, which decodes to a
+  single value.</p>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Protostone integers</th><td><code>[1, 6, 91, 0, 93, 0, 81, 7798626262034662673439921937612928]</code></td></tr>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d20ff7f818cec82d08bc0a880838aa48891a4d0c001ff7f80838aa48891a4d0c003</code></td></tr>
+      <tr><th>Expected</th><td>Rejected by the explicit length guard in <code>Cellpack::try_from</code> with <em>cellpack: need at least 2 varints</em>. The protostone is skipped and balances go to the refund pointer. This guard exists because the alternative was a panic, and a panic stops the indexer for everyone.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="i8">I8. Non-push opcode in the payload</h3>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Script hex</th><td><code class="hexblock">6a5d51ff7f</code></td></tr>
+      <tr><th>Expected</th><td><code>0x51</code> is <code>OP_1</code>, not a data push. The runestone is a cenotaph. Input balances are burned.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 id="i9">I9. Not an OP_RETURN at all</h3>
+<div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><th>Script hex</th><td><code class="hexblock">deadbeef</code></td></tr>
+      <tr><th>Expected</th><td>First byte is not <code>0x6a</code>. A decoder must reject it rather than guessing.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2 id="reproduce">Reproducing these</h2>
+<p>Each script hex above was produced by encoding the stated protostone integers with the layered encoding in
+  <a href="encoding.html">the encoding page</a>, then decoding the result and confirming the integers came back
+  unchanged. The decoder used is <a href="protostone.js">protostone.js</a>, which follows
+  <code>crates/protorune-support/src/protostone.rs</code> and
+  <code>ts-sdk/src/protostone/</code> in alkanes-rs.</p>
+<p>To check your own implementation quickly: encode V1, compare the hex, then decode I4 and confirm you get a
+  valid record with zero edicts and no error. Those two cover the most common encoding bug and the most common
+  decoding bug.</p>
+
+</main>
+</div>
+
+<footer class="sitefoot">
+  <div class="page">
+    <dl>
+      <div><dt>Owning repository</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes">bitcoinuniverseio/alkanes</a></dd></div>
+      <div><dt>Source of truth</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes-rs">bitcoinuniverseio/alkanes-rs</a></dd></div>
+      <div><dt>Spec version</dt><dd>alkanes-rs 2.2.1-rc.4</dd></div>
+      <div><dt>Lifecycle</dt><dd>Experimental</dd></div>
+      <div><dt>Chain and network</dt><dd>Bitcoin mainnet, regtest</dd></div>
+      <div><dt>Last verified</dt><dd><time datetime="2026-09-01">1 September 2026</time></dd></div>
+    </dl>
+    <p class="footlinks">
+      <a href="https://github.com/bitcoinuniverseio/alkanes/edit/main/test-vectors.html">Edit this page on GitHub</a>
+      <a href="https://docs.bitcoinuniverse.io">docs.bitcoinuniverse.io</a>
+      <a href="llms.txt">llms.txt</a>
+      <a href="changelog.html">Document changelog</a>
+    </p>
+    <p>Documentation source path: <code>test-vectors.html</code>.</p>
+  </div>
+</footer>
+</body>
+</html>
