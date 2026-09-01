@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="Alkanes protocol documentation">
+  <rect width="1200" height="630" fill="#04161c"/>
+  <g fill="none" stroke="#17414f" stroke-width="2">
+    <path d="M0 500 L120 420 L240 500 L360 420 L480 500 L600 420 L720 500 L840 420 L960 500 L1080 420 L1200 500"/>
+    <path d="M0 560 L120 480 L240 560 L360 480 L480 560 L600 480 L720 560 L840 480 L960 560 L1080 480 L1200 560"/>
+  </g>
+  <g fill="none" stroke="#9fc0c8" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M80 250 L170 180"/>
+    <path d="M88 262 L178 192"/>
+    <path d="M186 180 L272 250 M282 250 L368 180 M378 180 L464 250"/>
+  </g>
+  <circle cx="375" cy="180" r="13" fill="#47ce8b"/>
+  <g font-family="ui-monospace, Menlo, Consolas, monospace" font-size="26" fill="#9ab0b6">
+    <text x="66" y="310">6a</text>
+    <text x="156" y="152">5d</text>
+    <text x="252" y="310">16383</text>
+    <text x="368" y="152">1</text>
+    <text x="452" y="310">edicts</text>
+  </g>
+  <g font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" fill="#e8f2f2">
+    <text x="80" y="420" font-size="86" font-weight="650" letter-spacing="-2">Alkanes</text>
+    <text x="80" y="472" font-size="30" fill="#b6c9cd">WebAssembly smart contracts over Bitcoin</text>
+    <text x="80" y="514" font-size="24" fill="#9ab0b6">Protostone encoding, specification, test vectors</text>
+  </g>
+  <text x="1120" y="90" text-anchor="end" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="22" fill="#47ce8b">protocol tag 1</text>
+</svg>
