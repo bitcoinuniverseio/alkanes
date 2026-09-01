@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Changelog | Alkanes</title>
+<meta name="description" content="Version history for the Alkanes protocol documentation, plus the Bitcoin mainnet heights at which the protocol itself changes behaviour on chain.">
+<link rel="canonical" href="https://bitcoinuniverseio.github.io/alkanes/changelog.html">
+<link rel="search-base" href="./">
+<meta name="theme-color" content="#fbfcfb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#04161c" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Alkanes protocol documentation">
+<meta property="og:title" content="Alkanes documentation changelog">
+<meta property="og:description" content="Document version history and the protocol heights this documentation describes.">
+<meta property="og:url" content="https://bitcoinuniverseio.github.io/alkanes/changelog.html">
+<meta property="og:image" content="https://bitcoinuniverseio.github.io/alkanes/og.svg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
+<script src="site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead-in">
+    <a class="wordmark" href="./">
+      <svg width="34" height="20" viewBox="0 0 34 20" aria-hidden="true" focusable="false">
+        <path d="M2 15 L9 5 L16 15 L23 5 L30 15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="23" cy="5" r="3.2" fill="var(--accent)"/>
+      </svg>
+      Alkanes <small>protocol docs</small>
+    </a>
+    <nav aria-label="Primary">
+      <a href="./">Overview</a>
+      <a href="encoding.html">Encoding</a>
+      <a href="specification.html">Specification</a>
+      <a href="guide.html">Guide</a>
+      <a href="reference.html">Reference</a>
+      <a href="test-vectors.html">Test vectors</a>
+      <a href="tool.html">Tool</a>
+      <a href="changelog.html" aria-current="page">Changelog</a>
+    </nav>
+    <div class="mast-tools">
+      <div class="search-wrap" id="search-wrap" hidden>
+        <span class="slash" aria-hidden="true">/</span>
+        <label class="skip" for="search-input">Search this documentation</label>
+        <input id="search-input" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-controls="search-results">
+        <ul id="search-results" aria-label="Search results"></ul>
+      </div>
+      <button class="ghost" id="theme-toggle" hidden>Dark</button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<div class="page">
+
+<p class="eyebrow">History</p>
+<h1>Changelog</h1>
+<p class="lede">Two different histories matter here: the version history of this documentation, and the heights at
+  which the protocol itself changed behaviour on chain. Both are below.</p>
+
+<h2 id="docs">Documentation versions</h2>
+
+<h3 id="v1-0-0">1.0.0, 1 September 2026</h3>
+<p>Complete rebuild. The previous site was marketing copy with no protocol detail; this version documents the
+  wire format and the indexer semantics against alkanes-rs 2.2.1-rc.4.</p>
+<ul>
+  <li>New <a href="encoding.html">encoding page</a> with the full five-layer byte layout and worked examples
+    verified by round-tripping through a decoder.</li>
+  <li>New <a href="specification.html">specification</a> with numbered normative rules, each traced to the
+    implementing source file.</li>
+  <li>New <a href="guide.html">guide</a> covering transfer, call, and deploy, with a support matrix limited to
+    capability declared in this organisation's own code.</li>
+  <li>New <a href="reference.html">reference</a> covering metashrew indexing, confirmation, reorg, mempool,
+    fees, limits, and security.</li>
+  <li>New <a href="test-vectors.html">test vectors</a>, ten valid and nine invalid, including the four
+    round-trip cases from the alkanes-rs protostone tests and one captured mainnet payload.</li>
+  <li>New client-side <a href="tool.html">protostone encoder and decoder</a>.</li>
+  <li>Client-side search, dark and light themes, and a 404 page.</li>
+</ul>
+<h4 id="corrections">Corrections made in this version</h4>
+<ul>
+  <li><strong>Protostone virtual output index.</strong> The audit specification document in alkanes-rs states
+    that the first protostone occupies virtual output <code>N</code> for a transaction with <code>N</code>
+    outputs. The code assigns <code>N + 1 + i</code>. This documentation follows the code.</li>
+  <li><strong>Alkanes amounts are not fixed at eight decimals.</strong> Amounts are raw <code>u128</code> base
+    units on the wire, and both the Core protocol registry and the ecosystem capability snapshot record alkanes
+    decimals as asset-defined. No fixed scale is documented here.</li>
+  <li><strong>Protoburns are not active.</strong> Tags 83 and 95 parse, but the call that processes them is
+    compiled only under <code>cfg(test)</code>, with a source comment deferring activation. Earlier prose that
+    described protoburn bridging as live behaviour is not accurate for the released indexer.</li>
+</ul>
+
+<h3 id="v0">Before 1.0.0</h3>
+<p>The repository published a single promotional page describing Alkanes in general terms. It contained no wire
+  format, no specification, no test vectors, and no tooling. Its accurate claims, that Alkanes brings
+  WebAssembly contracts to Bitcoin through protorunes and that only a confirmed transaction changes on-chain
+  state, are preserved in this version.</p>
+
+<h2 id="protocol">Protocol heights this documentation describes</h2>
+<p>Alkanes has no version number on chain. Behaviour changes at fixed heights instead, so an implementation must
+  know which side of each height it is on.</p>
+<div class="tablewrap">
+  <table>
+    <caption>Bitcoin mainnet, from <code>src/network.rs</code> and <code>src/vm/fuel.rs</code>.</caption>
+    <thead><tr><th>Height</th><th>Change</th></tr></thead>
+    <tbody>
+      <tr><td>880,000</td><td>Alkanes genesis. Below this height the indexer processes the Runes layer only and performs no alkanes setup or execution.</td></tr>
+      <tr><td>899,087</td><td>Fuel change. Block fuel rises from 100,000,000 to 1,000,000,000, the per-transaction floor rises, and the per-byte storage cost rises from 8 to 40.</td></tr>
+      <tr><td>908,888</td><td>Genesis alkane upgrade.</td></tr>
+      <tr><td>917,888</td><td>Genesis alkane EOA upgrade.</td></tr>
+      <tr><td>943,500</td><td>Fuel enforcement becomes strict, and the edict spread behaviour is corrected so that <code>OP_RETURN</code> outputs are skipped before per-output amounts are computed rather than after.</td></tr>
+      <tr><td>950,000</td><td>V220 fork height.</td></tr>
+      <tr><td>957,000 and 960,000</td><td>fr-BTC contract fork heights.</td></tr>
+    </tbody>
+  </table>
+</div>
+<p class="small muted">On regtest every one of these heights is <code>0</code>, which is why a contract that
+  behaves correctly in the test harness still needs its mainnet activation height checked.</p>
+
+<h2 id="implementation">Implementation versions</h2>
+<div class="tablewrap narrow">
+  <table>
+    <thead><tr><th>Component</th><th>Version</th></tr></thead>
+    <tbody>
+      <tr><td>alkanes-rs workspace</td><td>2.2.1-rc.4</td></tr>
+      <tr><td><code>@alkanes/ts-sdk</code></td><td>0.1.6</td></tr>
+      <tr><td>This documentation</td><td>1.0.0</td></tr>
+    </tbody>
+  </table>
+</div>
+
+</div>
+</main>
+
+<footer class="sitefoot">
+  <div class="page">
+    <dl>
+      <div><dt>Owning repository</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes">bitcoinuniverseio/alkanes</a></dd></div>
+      <div><dt>Source of truth</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes-rs">bitcoinuniverseio/alkanes-rs</a></dd></div>
+      <div><dt>Spec version</dt><dd>alkanes-rs 2.2.1-rc.4</dd></div>
+      <div><dt>Lifecycle</dt><dd>Experimental</dd></div>
+      <div><dt>Chain and network</dt><dd>Bitcoin mainnet, regtest</dd></div>
+      <div><dt>Last verified</dt><dd><time datetime="2026-09-01">1 September 2026</time></dd></div>
+    </dl>
+    <p class="footlinks">
+      <a href="https://github.com/bitcoinuniverseio/alkanes/edit/main/changelog.html">Edit this page on GitHub</a>
+      <a href="https://docs.bitcoinuniverse.io">docs.bitcoinuniverse.io</a>
+      <a href="llms.txt">llms.txt</a>
+    </p>
+    <p>Documentation source path: <code>changelog.html</code>.</p>
+  </div>
+</footer>
+</body>
+</html>

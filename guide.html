@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guide | Alkanes</title>
+<meta name="description" content="A plain-language walkthrough of Alkanes: transfer a balance, call a contract, deploy a contract, and read balances, with worked transactions and a support matrix.">
+<link rel="canonical" href="https://bitcoinuniverseio.github.io/alkanes/guide.html">
+<link rel="search-base" href="./">
+<meta name="theme-color" content="#fbfcfb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#04161c" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Alkanes protocol documentation">
+<meta property="og:title" content="Alkanes guide">
+<meta property="og:description" content="Transfer, call, and deploy with worked transactions, plus a support matrix limited to what is verifiable in the org's own code.">
+<meta property="og:url" content="https://bitcoinuniverseio.github.io/alkanes/guide.html">
+<meta property="og:image" content="https://bitcoinuniverseio.github.io/alkanes/og.svg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
+<script src="site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead-in">
+    <a class="wordmark" href="./">
+      <svg width="34" height="20" viewBox="0 0 34 20" aria-hidden="true" focusable="false">
+        <path d="M2 15 L9 5 L16 15 L23 5 L30 15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="23" cy="5" r="3.2" fill="var(--accent)"/>
+      </svg>
+      Alkanes <small>protocol docs</small>
+    </a>
+    <nav aria-label="Primary">
+      <a href="./">Overview</a>
+      <a href="encoding.html">Encoding</a>
+      <a href="specification.html">Specification</a>
+      <a href="guide.html" aria-current="page">Guide</a>
+      <a href="reference.html">Reference</a>
+      <a href="test-vectors.html">Test vectors</a>
+      <a href="tool.html">Tool</a>
+      <a href="changelog.html">Changelog</a>
+    </nav>
+    <div class="mast-tools">
+      <div class="search-wrap" id="search-wrap" hidden>
+        <span class="slash" aria-hidden="true">/</span>
+        <label class="skip" for="search-input">Search this documentation</label>
+        <input id="search-input" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-controls="search-results">
+        <ul id="search-results" aria-label="Search results"></ul>
+      </div>
+      <button class="ghost" id="theme-toggle" hidden>Dark</button>
+    </div>
+  </div>
+</header>
+
+<div class="page with-rail">
+<aside class="rail">
+  <h2>On this page</h2>
+  <ol>
+    <li><a href="#model">The mental model</a></li>
+    <li><a href="#transfer">Transfer a balance</a></li>
+    <li><a href="#call">Call a contract</a></li>
+    <li><a href="#deploy">Deploy a contract</a></li>
+    <li><a href="#read">Read balances and traces</a></li>
+    <li><a href="#support">Support matrix</a></li>
+    <li><a href="#mistakes">Common mistakes</a></li>
+  </ol>
+  <h2>Related</h2>
+  <ol>
+    <li><a href="encoding.html">Byte-level encoding</a></li>
+    <li><a href="tool.html">Encoder and decoder</a></li>
+  </ol>
+</aside>
+
+<main id="main">
+
+<p class="eyebrow">Walkthrough</p>
+<h1>Guide</h1>
+<p class="lede">Three things you will actually do: move a balance, call a contract, deploy a contract. Each one is
+  the same shape, one <code>OP_RETURN</code> output carrying a protostone, and each is worked through to real
+  bytes you can check.</p>
+
+<h2 id="model">The mental model</h2>
+<p>Four ideas cover almost everything.</p>
+<div class="grid c2">
+  <div class="card">
+    <span class="k">1</span>
+    <h3>Balances live on outputs</h3>
+    <p>An alkane balance is recorded against a specific transaction output. To move it you must spend that
+      output. If you spend it without a valid instruction, the balance does not follow.</p>
+  </div>
+  <div class="card">
+    <span class="k">2</span>
+    <h3>The instruction is one output</h3>
+    <p>A single zero-value <code>OP_RETURN</code> starting <code>6a 5d</code>. Everything the protocol reads
+      comes from it.</p>
+  </div>
+  <div class="card">
+    <span class="k">3</span>
+    <h3>Everything unassigned has a home</h3>
+    <p>Whatever your edicts do not explicitly place ends up at the protostone's pointer, or the default output
+      when there is no pointer. There is no discard.</p>
+  </div>
+  <div class="card">
+    <span class="k">4</span>
+    <h3>Contracts are ordinary WASM</h3>
+    <p>A call is a cellpack: a target id, an opcode, and arguments. The contract sees the alkanes you sent it and
+      returns the alkanes it wants to send on.</p>
+  </div>
+</div>
+
+<h2 id="transfer">Transfer a balance</h2>
+<p>Goal: send <code>100000000</code> base units of alkane <code>2:1</code> to someone, keeping the change.</p>
+
+<h3 id="t-1">Step 1: choose inputs</h3>
+<p>Spend the outpoint or outpoints that hold the balance. All alkane balances on all inputs are pooled, so you
+  can combine several. Add a plain funding input if you need more sats for the fee.</p>
+
+<h3 id="t-2">Step 2: lay out outputs</h3>
+<pre><code>vout 0   recipient address        546 sats
+vout 1   your change address      546 sats
+vout 2   OP_RETURN                0 sats     &lt;- the protostone
+vout 3   fee change (optional)</code></pre>
+<p>The alkane outputs need enough value to be spendable later, so use your wallet's dust threshold rather than
+  the minimum.</p>
+
+<h3 id="t-3">Step 3: build the protostone</h3>
+<pre><code>const { encodedRunestone } = encodeRunestoneProtostone({
+  protostones: [
+    ProtoStone.edicts({
+      protocolTag: 1n,
+      edicts: [{
+        id: new ProtoruneRuneId(2n, 1n),
+        amount: 100000000n,
+        output: 0,
+      }],
+    }),
+  ],
+});</code></pre>
+<div class="fact">
+  <span class="t">The script this produces</span>
+  <pre class="hexblock"><code>6a5d0cff7f818a80909080a0e1d75f</code></pre>
+  <p class="small">That is the <code>output: 0</code> variant, 15 bytes. The <code>output: 1</code> variant
+    worked through on the <a href="encoding.html#worked-transfer">encoding page</a> is
+    <code>6a5d0dff7f818a80909080a0e1d7df04</code>. Changing one small integer at the end of the protostone
+    changes the tail of the payload and its length, which is a good reminder to verify rather than eyeball.</p>
+</div>
+
+<h3 id="t-4">Step 4: know where the change goes</h3>
+<p>The edict places exactly <code>100000000</code> at output 0. Everything left over goes to the protostone's
+  pointer. This protostone has no pointer, so the default output is used: the first non-<code>OP_RETURN</code>
+  output, which here is output 0 as well. If you want change at output 1, say so:</p>
+<pre><code>ProtoStone.edicts({
+  protocolTag: 1n,
+  edicts: [
+    { id: new ProtoruneRuneId(2n, 1n), amount: 100000000n, output: 0 },
+    { id: new ProtoruneRuneId(2n, 1n), amount: 0n,          output: 1 },
+  ],
+})</code></pre>
+<p>The second edict has amount <code>0</code>, which means the entire remaining balance, so it sweeps the change
+  to output 1. Both edicts address the same id, so the delta encoding makes the second pair <code>0, 0</code>,
+  and the protostone integers become
+  <code>[1, 9, 0, 2, 1, 100000000, 0, 0, 0, 0, 1]</code>.</p>
+<div class="fact">
+  <span class="t">Script hex with the change sweep</span>
+  <pre class="hexblock"><code>6a5d11ff7f819280909080a0e1d7df8080808040</code></pre>
+  <p class="small">20 bytes.</p>
+</div>
+
+<h3 id="t-5">Step 5: verify before signing</h3>
+<p>Paste the script hex into the <a href="tool.html">decoder</a>. Confirm the protocol tag is <code>1</code>, the
+  id is the alkane you meant, the amount is in base units, and the output index is the recipient. Then sign.</p>
+
+<h2 id="call">Call a contract</h2>
+<p>Goal: call alkane <code>2:1</code> with opcode <code>77</code>, sending the result to output 0 and refunding
+  to output 1 if it fails.</p>
+<pre><code>const cellpack = new Cellpack(2n, 1n, [77n]);
+
+const { encodedRunestone } = encodeRunestoneProtostone({
+  protostones: [
+    ProtoStone.message({
+      protocolTag: 1n,
+      calldata: cellpack.serialize(),
+      pointer: 0,
+      refundPointer: 1,
+    }),
+  ],
+});</code></pre>
+<div class="fact">
+  <span class="t">Script hex</span>
+  <pre class="hexblock"><code>6a5d0eff7f818cec82d0abc0a88285d215</code></pre>
+</div>
+<ul>
+  <li><strong>Pointer and refund pointer are both required.</strong> Omitting either is not a soft failure: it
+    aborts protostone processing for the whole transaction.</li>
+  <li><strong>Sending alkanes into the call.</strong> Add edicts to the same protostone targeting its own virtual
+    output. For a transaction with 3 real outputs the first protostone is virtual output <code>4</code>.</li>
+  <li><strong>Pass every argument.</strong> Calldata is zero-padded on the wire, so an omitted argument becomes
+    a zero rather than an error. See <a href="encoding.html#message">the message field</a>.</li>
+  <li><strong>Order matters.</strong> The message runs first; the protostone's edicts then operate on whatever
+    landed at the pointer. If the message reverts, its edicts are skipped.</li>
+</ul>
+
+<h3 id="call-real">A real example</h3>
+<p>This mainnet payload calls the fr-BTC system contract at <code>32:0</code> with opcode <code>77</code>:</p>
+<pre class="hexblock"><code>6a5d101600ff7f818cec8ad0abc0a8a081d215</code></pre>
+<p>It decodes to a Runes-layer pointer of 0, then protostone tag 1 with pointer 1, refund pointer 1, and cellpack
+  <code>[32, 0, 77]</code>. <a href="tool.html">Run it through the decoder</a> to see every field.</p>
+
+<h2 id="deploy">Deploy a contract</h2>
+<p>Deployment is a call to a reserved target. The binary itself does not go in the
+  <code>OP_RETURN</code>; it goes in a witness envelope, the same way an inscription does.</p>
+<div class="tablewrap narrow">
+  <table>
+    <thead><tr><th>Target</th><th>Form</th><th>Result id</th><th>Binary source</th></tr></thead>
+    <tbody>
+      <tr><td><code>1:0</code></td><td>CREATE</td><td><code>2:&lt;next sequence&gt;</code></td><td>Witness envelope on the first input</td></tr>
+      <tr><td><code>3:N</code></td><td>CREATERESERVED</td><td><code>4:N</code></td><td>Witness envelope on the first input</td></tr>
+      <tr><td><code>5:N</code></td><td>Factory from sequence template</td><td><code>2:&lt;next sequence&gt;</code></td><td>Pointer to the template's code</td></tr>
+      <tr><td><code>6:N</code></td><td>Factory from reserved template</td><td><code>2:&lt;next sequence&gt;</code></td><td>Pointer to the template's code</td></tr>
+    </tbody>
+  </table>
+</div>
+<p>A CREATE with the initializer at opcode <code>0</code>:</p>
+<pre><code>const cellpack = new Cellpack(1n, 0n, [0n]);   // target 1:0, opcode 0
+
+const { encodedRunestone } = encodeRunestoneProtostone({
+  protostones: [
+    ProtoStone.message({
+      protocolTag: 1n,
+      calldata: cellpack.serialize(),
+      pointer: 0,
+      refundPointer: 0,
+    }),
+  ],
+});</code></pre>
+<div class="fact">
+  <span class="t">Script hex</span>
+  <pre class="hexblock"><code>6a5d0bff7f818cec82d08bc0a801</code></pre>
+  <p class="small">14 bytes. The whole deployment instruction fits in fourteen bytes because the contract
+    itself travels in the witness, which is also why the fuel accounting strips that witness before sizing
+    the transaction.</p>
+</div>
+<p>A factory clone of the reserved template <code>65517</code>:</p>
+<pre><code>const cellpack = new Cellpack(6n, 65517n, [0n]);</code></pre>
+<div class="fact">
+  <span class="t">Script hex</span>
+  <pre class="hexblock"><code>6a5d0fff7f818cec82d0abc0a886b5ffff01</code></pre>
+</div>
+<p>Deployment is not something to attempt against mainnet first. alkanes-rs ships a test harness that runs your
+  contract against the same code path the mainnet indexer uses, with no funds and no live node. Use it.</p>
+
+<h2 id="read">Read balances and traces</h2>
+<p>State is derived, so reading it means asking an indexer, not the chain. alkanes-rs exposes view functions
+  through metashrew. The ones you will use most:</p>
+<div class="tablewrap">
+  <table>
+    <thead><tr><th>View</th><th>Answers</th></tr></thead>
+    <tbody>
+      <tr><td><code>protorunes_by_address</code></td><td>Every outpoint an address controls and the alkane balances on each.</td></tr>
+      <tr><td><code>protorunes_by_outpoint</code></td><td>The balances on one specific outpoint.</td></tr>
+      <tr><td><code>trace</code></td><td>The full execution trace for a transaction's protostone, including revert data.</td></tr>
+      <tr><td><code>traceblock</code></td><td>Every trace in a block.</td></tr>
+      <tr><td><code>simulate</code></td><td>Runs a cellpack without broadcasting, so you can check a call before you pay for it.</td></tr>
+      <tr><td><code>getbytecode</code></td><td>The decompressed WASM behind an alkane id.</td></tr>
+      <tr><td><code>getstorageat</code></td><td>One storage key of one contract.</td></tr>
+      <tr><td><code>meta</code></td><td>The contract's ABI, if it exports <code>__meta</code>.</td></tr>
+    </tbody>
+  </table>
+</div>
+<p>When a transaction did not do what you expected, <code>trace</code> is the first place to look. A revert
+  carries a readable message after the four-byte <code>08 c3 79 a0</code> prefix.</p>
+
+<h2 id="support">Support matrix</h2>
+<p>Only capability that is declared in this organisation's own code is listed as supported. Where something is
+  absent, that is stated rather than implied.</p>
+
+<h3 id="support-bu">Bitcoin Universe products</h3>
+<div class="tablewrap">
+  <table>
+    <caption>From the Core protocol registry and the ecosystem capability snapshot.</caption>
+    <thead><tr><th>Surface</th><th>Actions</th><th>State</th></tr></thead>
+    <tbody>
+      <tr><td>Core, main</td><td>view, discover, view collection, view activity, view transaction</td><td class="yes">Supported</td></tr>
+      <tr><td>Wallet</td><td>view, send, receive</td><td class="yes">Supported</td></tr>
+      <tr><td>Inscribe</td><td>mint</td><td class="yes">Supported</td></tr>
+      <tr><td>Marketplace, reads</td><td>view, view collection, view activity</td><td class="yes">Read-only</td></tr>
+      <tr><td>Marketplace, mutations</td><td>list, update listing, unlist, buy, make offer, accept offer, cancel offer, sell, settle, reconcile</td><td class="no">Not supported</td></tr>
+    </tbody>
+  </table>
+</div>
+<div class="note">
+  <span class="t">Why marketplace mutations are off, recorded verbatim</span>
+  <p>&ldquo;Alkanes mutations remain read-only until exact Alkane state, transferability, builder,
+    signed-transaction validation, broadcast, settlement, and reorg recovery are deployed and proven.&rdquo;</p>
+  <p class="small">The same snapshot records that no executable order authority is deployed, that ownership is
+    read authority only with no complete transferability proof, that no executable settlement authority is
+    deployed, that freshness is not enforced (no node-tip comparison, no maximum observation age), that no
+    supported mutation reaches confirmation or settlement, and that reorg reconciliation is not automatic because
+    there is no executable order state to roll back.</p>
+</div>
+
+<h3 id="support-tools">Developer tooling</h3>
+<div class="tablewrap">
+  <table>
+    <thead><tr><th>Tool</th><th>What it covers</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr><td><code>@alkanes/ts-sdk</code></td><td>Protostone and runestone encoding, cellpacks, provider and wallet helpers, CLI commands for alkanes, protorunes, runestone, and metashrew.</td><td><code>ts-sdk/</code> in alkanes-rs</td></tr>
+      <tr><td>alkanes-rs test harness</td><td>Runs contracts against the same code path as the mainnet indexer, without funds or a live node.</td><td>alkanes-rs repository</td></tr>
+      <tr><td><code>alkanes-runtime</code></td><td>Rust SDK for writing alkane contracts.</td><td><code>crates/alkanes-runtime</code></td></tr>
+      <tr><td>The decoder on this site</td><td>Checking a payload before you sign it.</td><td><a href="tool.html">tool.html</a></td></tr>
+    </tbody>
+  </table>
+</div>
+<p class="small muted">Third-party wallets and marketplaces are outside this organisation's code and are not
+  listed. Their support is not something this documentation can verify, so it makes no claim either way.</p>
+
+<h2 id="mistakes">Common mistakes</h2>
+<ol>
+  <li><strong>Writing JSON into an <code>OP_RETURN</code>.</strong> Some Bitcoin metaprotocols work that way.
+    Alkanes does not. Without <code>6a 5d</code> nothing is read, and the balance is stranded on a spent
+    outpoint.</li>
+  <li><strong>Using amount 0 as a placeholder.</strong> It means the entire remaining balance.</li>
+  <li><strong>Assuming decimals.</strong> Divisibility is asset-defined. The protocol moves raw base units and
+    the registry records alkanes decimals as asset-defined, so never hardcode a scale.</li>
+  <li><strong>Pointing an edict at the <code>OP_RETURN</code>.</strong> Check your output indexes against the
+    final output order, not the order you built them in.</li>
+  <li><strong>Omitting a cellpack argument.</strong> Zero padding fills it with <code>0</code>, silently.</li>
+  <li><strong>Forgetting the refund pointer.</strong> A message without it aborts protostone processing for the
+    transaction.</li>
+  <li><strong>Adding a second <code>OP_RETURN</code>.</strong> Only the first runestone counts, and a stray
+    non-push opcode in it makes a cenotaph, which burns balances.</li>
+  <li><strong>Testing on mainnet.</strong> The regtest harness exists precisely so you do not have to.</li>
+</ol>
+
+</main>
+</div>
+
+<footer class="sitefoot">
+  <div class="page">
+    <dl>
+      <div><dt>Owning repository</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes">bitcoinuniverseio/alkanes</a></dd></div>
+      <div><dt>Source of truth</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes-rs">bitcoinuniverseio/alkanes-rs</a></dd></div>
+      <div><dt>Spec version</dt><dd>alkanes-rs 2.2.1-rc.4</dd></div>
+      <div><dt>Lifecycle</dt><dd>Experimental</dd></div>
+      <div><dt>Chain and network</dt><dd>Bitcoin mainnet, regtest</dd></div>
+      <div><dt>Last verified</dt><dd><time datetime="2026-09-01">1 September 2026</time></dd></div>
+    </dl>
+    <p class="footlinks">
+      <a href="https://github.com/bitcoinuniverseio/alkanes/edit/main/guide.html">Edit this page on GitHub</a>
+      <a href="https://docs.bitcoinuniverse.io">docs.bitcoinuniverse.io</a>
+      <a href="llms.txt">llms.txt</a>
+      <a href="changelog.html">Document changelog</a>
+    </p>
+    <p>Documentation source path: <code>guide.html</code>.</p>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,57 +1,327 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Discover Alkanes, a powerful canvas for WebAssembly contracts and on-chain experiences anchored to Bitcoin.">
-  <meta name="theme-color" content="#061017">
-  <meta property="og:title" content="Alkanes | Programmable Bitcoin, unlocked">
-  <meta property="og:description" content="A richer canvas for assets, applications, and shared experiences on Bitcoin.">
-  <title>Alkanes | Programmable Bitcoin, unlocked</title>
-  <link rel="stylesheet" href="theme.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Alkanes protocol documentation</title>
+<meta name="description" content="Alkanes is a Bitcoin metaprotocol running WebAssembly contracts over protorune balances, carried in protostones inside a runestone OP_RETURN. Spec, encoding, and test vectors.">
+<link rel="canonical" href="https://bitcoinuniverseio.github.io/alkanes/">
+<link rel="search-base" href="./">
+<meta name="theme-color" content="#fbfcfb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#04161c" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Alkanes protocol documentation">
+<meta property="og:title" content="Alkanes protocol documentation">
+<meta property="og:description" content="WebAssembly contracts over Bitcoin. Protostone encoding, execution model, indexer semantics, and test vectors, grounded in alkanes-rs.">
+<meta property="og:url" content="https://bitcoinuniverseio.github.io/alkanes/">
+<meta property="og:image" content="https://bitcoinuniverseio.github.io/alkanes/og.svg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
+<script src="site.js" defer></script>
 </head>
 <body>
-  <header class="shell topbar">
-    <a class="brand" href="./"><span class="brand-mark">A</span><span>Alkanes</span></a>
-    <nav aria-label="Primary"><a href="#why">Why Alkanes</a><a href="#journey">The journey</a><a href="#control">Stay in control</a></nav>
-  </header>
-  <main>
-    <section class="shell hero" style="border-top:0">
-      <div>
-        <div class="kicker">A new canvas on Bitcoin</div>
-        <h1>Programmable Bitcoin, <span>unlocked.</span></h1>
-        <p class="lead">Alkanes brings WebAssembly-powered contracts to Bitcoin through Protorunes, opening a richer world for assets, applications, and shared on-chain experiences.</p>
-        <div class="actions"><a class="button primary" href="https://alkanes.build/">Explore Alkanes <span aria-hidden="true">→</span></a><a class="button" href="#why">See what makes it different</a></div>
-      </div>
-      <div class="visual" aria-hidden="true"><div class="core">A</div><span class="float one">WebAssembly power</span><span class="float two">Bitcoin history</span><span class="float three">Living state</span></div>
-    </section>
+<a class="skip" href="#main">Skip to content</a>
 
-    <section id="why"><div class="shell">
-      <div class="section-head"><div><div class="kicker">Beyond simple tickers</div><h2>Code becomes culture on Bitcoin.</h2></div><p>Alkanes pairs expressive contract logic with the durability and openness of Bitcoin. Every interaction has a clear identity, a public transaction, and a state that can be discovered again.</p></div>
-      <div class="cards">
-        <article class="card"><small>01 / EXPRESSIVE</small><h3>WASM-powered worlds</h3><p>WebAssembly gives creators room to shape experiences that go far beyond a single token action.</p></article>
-        <article class="card"><small>02 / BITCOIN</small><h3>Anchored to the chain</h3><p>Contract interactions travel through Bitcoin transactions, creating a history anyone can follow.</p></article>
-        <article class="card"><small>03 / DISCOVERABLE</small><h3>State you can revisit</h3><p>Contract identity and indexed state make each experience legible across wallets and applications.</p></article>
+<header class="masthead">
+  <div class="masthead-in">
+    <a class="wordmark" href="./">
+      <svg width="34" height="20" viewBox="0 0 34 20" aria-hidden="true" focusable="false">
+        <path d="M2 15 L9 5 L16 15 L23 5 L30 15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="23" cy="5" r="3.2" fill="var(--accent)"/>
+      </svg>
+      Alkanes <small>protocol docs</small>
+    </a>
+    <nav aria-label="Primary">
+      <a href="./" aria-current="page">Overview</a>
+      <a href="encoding.html">Encoding</a>
+      <a href="specification.html">Specification</a>
+      <a href="guide.html">Guide</a>
+      <a href="reference.html">Reference</a>
+      <a href="test-vectors.html">Test vectors</a>
+      <a href="tool.html">Tool</a>
+      <a href="changelog.html">Changelog</a>
+    </nav>
+    <div class="mast-tools">
+      <div class="search-wrap" id="search-wrap" hidden>
+        <span class="slash" aria-hidden="true">/</span>
+        <label class="skip" for="search-input">Search this documentation</label>
+        <input id="search-input" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-controls="search-results">
+        <ul id="search-results" aria-label="Search results"></ul>
       </div>
-    </div></section>
+      <button class="ghost" id="theme-toggle" hidden>Dark</button>
+    </div>
+  </div>
+</header>
 
-    <section id="journey"><div class="shell">
-      <div class="section-head"><div><div class="kicker">The Alkanes journey</div><h2>From an idea to an on-chain moment.</h2></div><p>A contract is published, given a unique identity, and brought to life through Bitcoin transactions. Each confirmed interaction becomes part of its enduring story.</p></div>
-      <div class="journey">
-        <article class="step"><b>01</b><h3>Imagine</h3><p>A creator shapes the logic and experience.</p></article>
-        <article class="step"><b>02</b><h3>Publish</h3><p>The contract enters Bitcoin with its own identity.</p></article>
-        <article class="step"><b>03</b><h3>Interact</h3><p>People take part through clear, signed transactions.</p></article>
-        <article class="step"><b>04</b><h3>Discover</h3><p>Confirmed state and history remain visible over time.</p></article>
+<main id="main">
+<div class="page">
+
+<section class="hero">
+  <div class="hero-grid">
+    <div>
+      <p class="eyebrow">Bitcoin metaprotocol &middot; protocol tag 1</p>
+      <h1>Alkanes</h1>
+      <p class="lede">Alkanes puts WebAssembly smart contracts over Bitcoin. Token balances are carried as
+        protorunes inside protostones, and a protostone rides inside a runestone in an <code>OP_RETURN</code>
+        output. Bitcoin stores the instructions; an indexer replays every block and derives the resulting state.</p>
+      <div class="btnrow">
+        <a class="btn solid" href="encoding.html">Payload encoding</a>
+        <a class="btn" href="tool.html">Encode or decode a protostone</a>
       </div>
-    </div></section>
+    </div>
+    <figure class="figframe">
+      <svg viewBox="0 0 620 210" role="img" aria-labelledby="heroT heroD">
+        <title id="heroT">An alkanes transfer drawn as a bond-line structure</title>
+        <desc id="heroD">A zig-zag chain of seven vertices. Reading left to right the vertices are labelled 6a for OP_RETURN, 5d for OP_PUSHNUM_13, 16383 for the protocol field tag, 1 for the alkanes protocol tag, 5 for the field count, 0 for the edict body tag, and edicts for the transfer instructions themselves. The vertex labelled 1 is highlighted.</desc>
+        <g fill="none" stroke="var(--bond)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M46 132 L124 74"/>
+          <path d="M52 141 L130 83"/>
+          <path d="M132 74 L206 132 M212 132 L286 74 M292 74 L366 132 M372 132 L446 74 M452 74 L526 132"/>
+        </g>
+        <g fill="var(--accent)"><circle cx="289" cy="74" r="5.5"/></g>
+        <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="var(--ink)" text-anchor="middle">
+          <text x="40" y="156">6a</text>
+          <text x="129" y="62">5d</text>
+          <text x="209" y="156">16383</text>
+          <text x="289" y="52">1</text>
+          <text x="369" y="156">5</text>
+          <text x="449" y="62">0</text>
+          <text x="529" y="156">edicts</text>
+        </g>
+        <g font-family="system-ui, sans-serif" font-size="11" fill="var(--muted)" text-anchor="middle">
+          <text x="40" y="172">OP_RETURN</text>
+          <text x="129" y="46">OP_PUSHNUM_13</text>
+          <text x="209" y="172">Protocol field</text>
+          <text x="289" y="36">alkanes</text>
+          <text x="369" y="172">field count</text>
+          <text x="449" y="46">Body</text>
+          <text x="529" y="172">id, amount, vout</text>
+        </g>
+      </svg>
+      <figcaption>The same skeleton every alkanes transfer has. The double bond at the left is the
+        <code>6a 5d</code> envelope; without it there is no protostone at all.</figcaption>
+    </figure>
+  </div>
+</section>
 
-    <section id="control"><div class="shell spotlight">
-      <div class="kicker">Your keys. Your decision.</div>
-      <h2>Make every on-chain moment intentional.</h2>
-      <p>Before signing, check the Bitcoin network, contract identity, assets, recipient, and miner fee shown by your wallet. A preview can help you understand an action, but only confirmation changes on-chain state.</p>
-      <div class="links"><a href="https://alkanes.build/">Visit Alkanes</a><a href="https://github.com/sandshrewmetaprotocols/alkanes">Explore the open-source ecosystem</a><a href="https://github.com/bitcoinuniverse">Discover Bitcoin Universe</a></div>
-    </div></section>
-  </main>
-  <footer class="shell footer"><span>Alkanes, presented by Bitcoin Universe.</span><span>Built for curious people exploring Bitcoin's programmable frontier.</span></footer>
+<dl class="facts">
+  <div><dt>Chain</dt><dd>Bitcoin</dd></div>
+  <div><dt>Network</dt><dd>mainnet from block 880,000</dd></div>
+  <div><dt>Protocol tag</dt><dd>1</dd></div>
+  <div><dt>Carrier</dt><dd>OP_RETURN runestone</dd></div>
+  <div><dt>Implementation</dt><dd>alkanes-rs 2.2.1-rc.4</dd></div>
+  <div><dt>Lifecycle</dt><dd>Experimental</dd></div>
+</dl>
+
+<div class="danger">
+  <span class="t">Read this before you build a transfer</span>
+  <p>An alkanes transfer payload is an <strong>encoded protostone</strong>, not JSON. The script must begin
+    <code>6a 5d</code>: <code>OP_RETURN</code> followed by <code>OP_PUSHNUM_13</code>. A plain <code>6a</code>
+    <code>OP_RETURN</code> carrying JSON, text, or any other blob is not a runestone, so alkanes-rs never reads a
+    protostone out of it. The indexer only moves and clears protorune balances when it finds real protostones, so a
+    wrong payload does not fail loudly: the transaction confirms, the fee is spent, and the asset stays where it was
+    in the index while the UTXO that held it is gone.</p>
+  <p><a href="encoding.html">Read the encoding page</a>, or
+    <a href="tool.html">check a script hex in the decoder</a>.</p>
+</div>
+
+<h2 id="what">What Alkanes is, in plain language</h2>
+<p>Bitcoin transactions cannot run programs. Alkanes works around that the way every Bitcoin metaprotocol does:
+  the transaction carries an <em>instruction</em>, and software outside Bitcoin agrees on what that instruction means.</p>
+<ul>
+  <li><strong>The instruction lives in an <code>OP_RETURN</code> output.</strong> It is a runestone, the same
+    envelope the Runes protocol uses, extended with a field that carries protostones.</li>
+  <li><strong>A protostone names a sub-protocol.</strong> Alkanes is sub-protocol number <code>1</code>. A
+    protostone can move balances (edicts), or carry a message (calldata) for the sub-protocol to execute.</li>
+  <li><strong>Contracts are real WebAssembly.</strong> A contract binary is deployed in a transaction witness.
+    Calls to it are messages inside protostones. The contract runs in a metered, sandboxed <code>wasmi</code> VM
+    with no network, no filesystem, and no source of randomness.</li>
+  <li><strong>Balances follow Bitcoin's UTXO model.</strong> An alkane balance is attached to a specific
+    transaction output. Spending that output is what lets a transaction move the balance.</li>
+  <li><strong>State is derived, not stored on chain.</strong> Every indexer that replays the same blocks with the
+    same rules reaches the same state. There is no alkanes chain and no alkanes network token.</li>
+</ul>
+
+<h2 id="who">Who this documentation is for</h2>
+<div class="grid c3">
+  <div class="card">
+    <span class="k">Wallet and app developers</span>
+    <h3>Build a payload that works</h3>
+    <p>The <a href="encoding.html">encoding page</a> gives the exact byte layout with worked examples, and the
+      <a href="guide.html">guide</a> walks through deploy, execute, and transfer.</p>
+  </div>
+  <div class="card">
+    <span class="k">Protocol implementers</span>
+    <h3>Match the reference behaviour</h3>
+    <p>The <a href="specification.html">specification</a> gives numbered rules with the alkanes-rs source path for
+      each, and the <a href="test-vectors.html">test vectors</a> pin down the edge cases.</p>
+  </div>
+  <div class="card">
+    <span class="k">Holders and analysts</span>
+    <h3>Understand what you are looking at</h3>
+    <p>The <a href="reference.html">reference</a> covers terminology, indexer semantics, reorg behaviour, and what
+      Bitcoin Universe products do and do not support today.</p>
+  </div>
+</div>
+
+<h2 id="anatomy">How a transaction carries alkanes</h2>
+<figure class="figframe">
+  <svg viewBox="0 0 640 300" role="img" aria-labelledby="anatT anatD">
+    <title id="anatT">Anatomy of an alkanes transaction</title>
+    <desc id="anatD">Inputs on the left carry alkane balances from previously indexed outpoints. In the middle the transaction has ordinary outputs numbered 0 and 1 plus one OP_RETURN output. The OP_RETURN holds a runestone, the runestone holds a protostone, and the protostone holds edicts and an optional message. On the right, the indexer assigns resulting balances to output 0 and output 1, and virtual output 4 is the protostone's own shadow output.</desc>
+    <g font-family="system-ui, sans-serif" font-size="11" fill="var(--muted)">
+      <text x="8" y="18">INPUTS</text>
+      <text x="200" y="18">TRANSACTION OUTPUTS</text>
+      <text x="500" y="18">INDEXED RESULT</text>
+    </g>
+    <g stroke="var(--line-strong)" stroke-width="1" fill="var(--surface-2)">
+      <rect x="8" y="32" width="140" height="46" rx="3"/>
+      <rect x="8" y="90" width="140" height="46" rx="3"/>
+    </g>
+    <g font-family="ui-monospace, Menlo, Consolas, monospace" font-size="11" fill="var(--ink)">
+      <text x="18" y="52">outpoint A</text><text x="18" y="68" fill="var(--muted)">holds 2:1</text>
+      <text x="18" y="110">outpoint B</text><text x="18" y="126" fill="var(--muted)">holds 2:1</text>
+    </g>
+
+    <g stroke="var(--line-strong)" stroke-width="1" fill="var(--surface-2)">
+      <rect x="200" y="32" width="180" height="34" rx="3"/>
+      <rect x="200" y="76" width="180" height="34" rx="3"/>
+    </g>
+    <rect x="200" y="126" width="240" height="140" rx="3" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.4"/>
+    <rect x="212" y="158" width="216" height="96" rx="3" fill="var(--surface)" stroke="var(--line-strong)" stroke-width="1"/>
+    <rect x="224" y="188" width="192" height="54" rx="3" fill="var(--surface-2)" stroke="var(--line-strong)" stroke-width="1"/>
+    <g font-family="ui-monospace, Menlo, Consolas, monospace" font-size="11" fill="var(--ink)">
+      <text x="212" y="53">vout 0 &middot; recipient</text>
+      <text x="212" y="97">vout 1 &middot; change</text>
+      <text x="212" y="146">vout 2 &middot; OP_RETURN 6a 5d</text>
+      <text x="224" y="178">runestone (tag 16383)</text>
+      <text x="236" y="206">protostone tag 1</text>
+      <text x="236" y="228" fill="var(--muted)">edicts &middot; message</text>
+    </g>
+
+    <g stroke="var(--bond)" stroke-width="1.6" fill="none" marker-end="url(#ar)">
+      <path d="M150 55 L196 49"/>
+      <path d="M150 112 L196 93"/>
+      <path d="M444 196 L470 120 L494 60"/>
+      <path d="M444 200 L478 168"/>
+    </g>
+    <defs>
+      <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" fill="var(--bond)"/>
+      </marker>
+    </defs>
+
+    <g stroke="var(--line-strong)" stroke-width="1" fill="var(--surface-2)">
+      <rect x="496" y="32" width="136" height="42" rx="3"/>
+      <rect x="496" y="84" width="136" height="42" rx="3"/>
+      <rect x="496" y="150" width="136" height="46" rx="3" stroke-dasharray="4 3"/>
+    </g>
+    <g font-family="ui-monospace, Menlo, Consolas, monospace" font-size="11" fill="var(--ink)">
+      <text x="506" y="50">vout 0</text><text x="506" y="66" fill="var(--muted)">gets 2:1</text>
+      <text x="506" y="102">vout 1</text><text x="506" y="118" fill="var(--muted)">gets remainder</text>
+      <text x="506" y="168">virtual vout 4</text><text x="506" y="184" fill="var(--muted)">the protostone</text>
+    </g>
+  </svg>
+  <figcaption>A protostone also occupies a virtual output. For a transaction with N real outputs, the first
+    protostone sits at index N+1, the second at N+2, and so on. Edicts can target those virtual indexes to hand
+    balances to a protostone before its message runs.</figcaption>
+</figure>
+
+<h2 id="support">Support in Bitcoin Universe products</h2>
+<p>Only verified support is listed. Everything else is stated as unsupported rather than implied.</p>
+<div class="tablewrap">
+  <table>
+    <caption>From the Core protocol registry and the ecosystem capability snapshot.</caption>
+    <thead><tr><th>Capability</th><th>State</th><th>What that means</th></tr></thead>
+    <tbody>
+      <tr><td>View alkanes and activity in Core</td><td class="yes">Supported</td><td>Discovery actions only: view, discover, view collection, view activity, view transaction.</td></tr>
+      <tr><td>Wallet view, send, receive</td><td class="yes">Supported</td><td>Declared wallet actions for the alkanes protocol in the Core registry.</td></tr>
+      <tr><td>Inscribe: mint</td><td class="yes">Supported</td><td>The only inscribe action declared for alkanes.</td></tr>
+      <tr><td>Core marketplace trading</td><td class="no">Read-only</td><td>Marketplace availability is <code>read-only</code>. List, update listing, unlist, buy, make offer, accept offer, cancel offer, sell, settle, and reconcile are all unsupported.</td></tr>
+    </tbody>
+  </table>
+</div>
+<div class="note">
+  <span class="t">Recorded reason, verbatim</span>
+  <p>&ldquo;Alkanes mutations remain read-only until exact Alkane state, transferability, builder,
+    signed-transaction validation, broadcast, settlement, and reorg recovery are deployed and proven.&rdquo;</p>
+  <p class="small">That single reason is recorded against every unsupported marketplace action. The snapshot also
+    records that no executable order authority and no executable settlement authority are deployed, that freshness
+    is not enforced, and that no supported mutation reaches confirmation or settlement.</p>
+</div>
+
+<h2 id="entry">Entry points</h2>
+<div class="grid c2">
+  <div class="card">
+    <h3><a href="encoding.html">Payload encoding</a></h3>
+    <p>The byte layout of a protostone, from integers to LEB128 to 15-byte chunks to script, with a full worked
+      example you can verify byte by byte.</p>
+  </div>
+  <div class="card">
+    <h3><a href="specification.html">Specification</a></h3>
+    <p>Numbered normative rules: envelope, protocol tag, edict semantics, cellpacks, execution, state transitions,
+      validity and invalidity.</p>
+  </div>
+  <div class="card">
+    <h3><a href="guide.html">Guide</a></h3>
+    <p>Deploy a contract, execute a call, transfer a balance. Worked transactions and the support matrix.</p>
+  </div>
+  <div class="card">
+    <h3><a href="reference.html">Reference</a></h3>
+    <p>Terminology, indexer semantics through metashrew, confirmation, reorg, mempool, fees, limits, security,
+      and an implementation checklist.</p>
+  </div>
+  <div class="card">
+    <h3><a href="test-vectors.html">Test vectors</a></h3>
+    <p>Valid and invalid vectors with expected outcomes, derived from the encoder and from alkanes-rs behaviour.</p>
+  </div>
+  <div class="card">
+    <h3><a href="tool.html">Protostone tool</a></h3>
+    <p>Encode an edict into script hex, or paste a script hex and see exactly what an indexer reads out of it.
+      Runs entirely in your browser.</p>
+  </div>
+</div>
+
+<h2 id="origin">Origin and attribution</h2>
+<p>Alkanes did not originate at Bitcoin Universe. The protocol and its reference Rust implementation come from the
+  upstream <code>kungfuflex/alkanes-rs</code> project, which also hosts the protocol wiki, and Alkanes is built as a
+  sub-protocol of <a href="https://github.com/kungfuflex/protorune/wiki">protorunes</a>, which is itself a sub-protocol
+  extension of Runes. Runes originated outside this organisation as well.</p>
+<p><a href="https://github.com/bitcoinuniverseio/alkanes-rs">bitcoinuniverseio/alkanes-rs</a> is this organisation's
+  implementation repository and is the source every statement on this site is checked against. Where Bitcoin Universe
+  makes its own indexing or product decisions, this documentation says so explicitly.</p>
+
+<h2 id="links">Links</h2>
+<ul>
+  <li><a href="https://github.com/bitcoinuniverseio/alkanes-rs">bitcoinuniverseio/alkanes-rs</a>, the Rust implementation and indexer</li>
+  <li><a href="https://github.com/bitcoinuniverseio/alkanes">bitcoinuniverseio/alkanes</a>, the repository that publishes this site</li>
+  <li><a href="https://docs.bitcoinuniverse.io">docs.bitcoinuniverse.io</a>, the central Bitcoin Universe documentation portal</li>
+  <li><a href="https://github.com/kungfuflex/alkanes-rs/wiki">Upstream ALKANES wiki</a></li>
+  <li><a href="https://github.com/bitcoinuniverseio/alkanes/security/advisories/new">Report a vulnerability privately</a>, or read <a href="https://github.com/bitcoinuniverseio/alkanes/blob/main/SECURITY.md">SECURITY.md</a></li>
+</ul>
+
+</div>
+</main>
+
+<footer class="sitefoot">
+  <div class="page">
+    <dl>
+      <div><dt>Owning repository</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes">bitcoinuniverseio/alkanes</a></dd></div>
+      <div><dt>Source of truth</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes-rs">bitcoinuniverseio/alkanes-rs</a></dd></div>
+      <div><dt>Spec version</dt><dd>alkanes-rs 2.2.1-rc.4</dd></div>
+      <div><dt>Lifecycle</dt><dd>Experimental</dd></div>
+      <div><dt>Chain and network</dt><dd>Bitcoin mainnet, regtest</dd></div>
+      <div><dt>Last verified</dt><dd><time datetime="2026-09-01">1 September 2026</time></dd></div>
+    </dl>
+    <p class="footlinks">
+      <a href="https://github.com/bitcoinuniverseio/alkanes/edit/main/index.html">Edit this page on GitHub</a>
+      <a href="https://docs.bitcoinuniverse.io">docs.bitcoinuniverse.io</a>
+      <a href="llms.txt">llms.txt</a>
+      <a href="changelog.html">Document changelog</a>
+    </p>
+    <p>Documentation source path: <code>index.html</code>. Alkanes has no network token. Nothing here is financial advice.</p>
+  </div>
+</footer>
 </body>
 </html>

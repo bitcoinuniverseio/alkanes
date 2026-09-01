@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Protostone payload encoding | Alkanes</title>
+<meta name="description" content="The exact byte layout of an alkanes protostone: the 6a 5d envelope, LEB128 runestone fields, tag 16383, the 15-byte chunk rule, and edicts, with worked examples.">
+<link rel="canonical" href="https://bitcoinuniverseio.github.io/alkanes/encoding.html">
+<link rel="search-base" href="./">
+<meta name="theme-color" content="#fbfcfb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#04161c" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Alkanes protocol documentation">
+<meta property="og:title" content="Protostone payload encoding">
+<meta property="og:description" content="Byte-level encoding of an alkanes transfer, from integers to script hex, with worked examples. Getting this wrong strands assets.">
+<meta property="og:url" content="https://bitcoinuniverseio.github.io/alkanes/encoding.html">
+<meta property="og:image" content="https://bitcoinuniverseio.github.io/alkanes/og.svg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
+<script src="site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead-in">
+    <a class="wordmark" href="./">
+      <svg width="34" height="20" viewBox="0 0 34 20" aria-hidden="true" focusable="false">
+        <path d="M2 15 L9 5 L16 15 L23 5 L30 15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="23" cy="5" r="3.2" fill="var(--accent)"/>
+      </svg>
+      Alkanes <small>protocol docs</small>
+    </a>
+    <nav aria-label="Primary">
+      <a href="./">Overview</a>
+      <a href="encoding.html" aria-current="page">Encoding</a>
+      <a href="specification.html">Specification</a>
+      <a href="guide.html">Guide</a>
+      <a href="reference.html">Reference</a>
+      <a href="test-vectors.html">Test vectors</a>
+      <a href="tool.html">Tool</a>
+      <a href="changelog.html">Changelog</a>
+    </nav>
+    <div class="mast-tools">
+      <div class="search-wrap" id="search-wrap" hidden>
+        <span class="slash" aria-hidden="true">/</span>
+        <label class="skip" for="search-input">Search this documentation</label>
+        <input id="search-input" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-controls="search-results">
+        <ul id="search-results" aria-label="Search results"></ul>
+      </div>
+      <button class="ghost" id="theme-toggle" hidden>Dark</button>
+    </div>
+  </div>
+</header>
+
+<div class="page with-rail">
+<aside class="rail">
+  <h2>On this page</h2>
+  <ol>
+    <li><a href="#why">Why this page matters</a></li>
+    <li><a href="#layers">The five layers</a></li>
+    <li><a href="#envelope">1. The script envelope</a></li>
+    <li><a href="#fields">2. Runestone fields</a></li>
+    <li><a href="#chunks">3. The 15-byte rule</a></li>
+    <li><a href="#records">4. Protostone records</a></li>
+    <li><a href="#body">5a. The edict body</a></li>
+    <li><a href="#message">5b. The message field</a></li>
+    <li><a href="#worked-transfer">Worked example: transfer</a></li>
+    <li><a href="#worked-call">Worked example: contract call</a></li>
+    <li><a href="#worked-real">Worked example: mainnet</a></li>
+    <li><a href="#wrong">Three ways to lose an asset</a></li>
+    <li><a href="#checklist">Encoder checklist</a></li>
+  </ol>
+  <h2>Related</h2>
+  <ol>
+    <li><a href="tool.html">Encoder and decoder</a></li>
+    <li><a href="test-vectors.html">Test vectors</a></li>
+    <li><a href="specification.html">Numbered rules</a></li>
+  </ol>
+</aside>
+
+<main id="main">
+
+<p class="eyebrow">Wire format</p>
+<h1>Protostone payload encoding</h1>
+<p class="lede">This page gives the exact bytes. Every claim here is checked against
+  <a href="https://github.com/bitcoinuniverseio/alkanes-rs">alkanes-rs</a>: the Rust decoder in
+  <code>crates/protorune-support/src/protostone.rs</code>, the tag table in
+  <code>crates/ordinals/src/runestone/tag.rs</code>, and the encoder in
+  <code>ts-sdk/src/protostone/</code>. The two sides agree, and the examples below were produced by running the
+  encoder and feeding the result back through the decoder.</p>
+
+<h2 id="why">Why this page matters</h2>
+<div class="danger">
+  <span class="t">A wrong payload does not fail loudly</span>
+  <p>An alkanes transfer is an <strong>encoded protostone</strong>. The output script must begin with
+    <code>6a 5d</code>, <code>OP_RETURN</code> followed by <code>OP_PUSHNUM_13</code>. A plain <code>6a</code>
+    <code>OP_RETURN</code> carrying JSON, a text string, or any other blob is not a runestone. It is skipped
+    entirely.</p>
+  <p>The transaction still confirms. The fee is still spent. The input that held your alkanes is still gone from
+    the UTXO set. But the index never learned that the balance should move, so it stays recorded against an
+    outpoint that can never be spent again. There is no error, no refund, and no recovery.</p>
+</div>
+<p>The correct payload for a simple transfer is what the ts-sdk produces from
+  <code>encodeRunestoneProtostone</code> with
+  <code>ProtoStone.edicts({ protocolTag: 1n, edicts: [{ id, amount, output }] })</code>. Everything on this page
+  explains what that call actually emits, so you can produce it in any language and verify it yourself.</p>
+
+<h2 id="layers">The five layers</h2>
+<p>A protostone is nested twice inside LEB128. That is the part people get wrong. Reading outward from the data
+  you care about:</p>
+
+<figure class="figframe">
+  <svg viewBox="0 0 640 320" role="img" aria-labelledby="pipeT pipeD">
+    <title id="pipeT">The five encoding layers, drawn as a reaction sequence</title>
+    <desc id="pipeD">Five stages joined by arrows. Stage one, protostone integers: protocol tag, field count, then fields. Stage two, LEB128 encode into a byte stream. Stage three, split into 15-byte little-endian chunks, each becoming one u128. Stage four, emit each chunk as a runestone field with tag 16383 and LEB128 encode the whole runestone. Stage five, prefix OP_RETURN and OP_PUSHNUM_13 and append the payload as data pushes.</desc>
+    <g font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12">
+      <g stroke="var(--line-strong)" fill="var(--surface-2)" stroke-width="1">
+        <rect x="10" y="24" width="620" height="44" rx="3"/>
+        <rect x="10" y="86" width="620" height="44" rx="3"/>
+        <rect x="10" y="148" width="620" height="44" rx="3"/>
+        <rect x="10" y="210" width="620" height="44" rx="3"/>
+      </g>
+      <rect x="10" y="272" width="620" height="44" rx="3" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.4"/>
+      <g fill="var(--ink)">
+        <text x="24" y="44">1  protostone integers</text>
+        <text x="24" y="106">2  LEB128 varints</text>
+        <text x="24" y="168">3  15-byte little-endian chunks</text>
+        <text x="24" y="230">4  runestone fields, tag 16383, LEB128</text>
+        <text x="24" y="292">5  6a 5d + data pushes</text>
+      </g>
+      <g fill="var(--muted)" font-size="11">
+        <text x="24" y="60">[1, 5, 0, 2, 1, 100000000, 1]</text>
+        <text x="24" y="122">010500020180c2d72f01</text>
+        <text x="24" y="184">[5604910583939447391489]</text>
+        <text x="24" y="246">ff7f 818a80909080a0e1d7df04</text>
+        <text x="24" y="308">6a5d0dff7f818a80909080a0e1d7df04</text>
+      </g>
+    </g>
+    <g stroke="var(--bond)" stroke-width="1.6" fill="none" marker-end="url(#arr2)">
+      <path d="M600 68 L600 84"/><path d="M600 130 L600 146"/>
+      <path d="M600 192 L600 208"/><path d="M600 254 L600 270"/>
+    </g>
+    <defs>
+      <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" fill="var(--bond)"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>The worked transfer from further down this page, at every stage. Layers 2 and 4 are both LEB128.
+    Layer 3 exists to keep every value inside the runestone varint limits.</figcaption>
+</figure>
+
+<h2 id="envelope">1. The script envelope</h2>
+<p>The runestone lives in one <code>OP_RETURN</code> output whose value is zero. The script is:</p>
+<pre><code>OP_RETURN            0x6a
+OP_PUSHNUM_13        0x5d
+&lt;data push&gt;          the LEB128 runestone payload, in chunks of at most 520 bytes</code></pre>
+<p>alkanes-rs looks for exactly these two leading bytes.
+  <code>crates/ordinals/src/runestone.rs</code> defines the magic as a single little-endian <code>u16</code>
+  constant <code>0x5d6a</code>, which is the byte pair <code>6a 5d</code> read as a 16-bit little-endian value.
+  If the second opcode is anything else, the output is not a runestone and the transaction carries no protostone.</p>
+<ul>
+  <li>Only data pushes may follow. A non-push opcode makes the runestone a cenotaph.</li>
+  <li>Each push carries at most <code>MAX_SCRIPT_ELEMENT_SIZE</code> = 520 bytes. Longer payloads are split
+    across consecutive pushes and concatenated by the decoder.</li>
+  <li>If a transaction has more than one <code>OP_RETURN</code> output with the magic, the first one in output
+    order is the runestone.</li>
+</ul>
+
+<h2 id="fields">2. Runestone fields</h2>
+<p>The payload is a flat list of LEB128 varints read as tag and value pairs. Tag <code>0</code> is special: it
+  ends the field section and everything after it is the Runes-layer edict body. The protostone data rides in
+  repeated fields with tag <code>16383</code>.</p>
+<div class="tablewrap">
+  <table>
+    <caption>Runestone tags relevant to alkanes, from <code>crates/ordinals/src/runestone/tag.rs</code>.</caption>
+    <thead><tr><th>Tag</th><th>Name</th><th>Role for alkanes</th></tr></thead>
+    <tbody>
+      <tr><td><code>0</code></td><td>Body</td><td>Runes-layer edicts. Alkanes transfers do not use this; they use the protostone body instead.</td></tr>
+      <tr><td><code>20</code></td><td>Mint</td><td>Runes minting. Not used by alkanes.</td></tr>
+      <tr><td><code>22</code></td><td>Pointer</td><td>Default output for unallocated Runes-layer balances. Frequently present alongside a protostone.</td></tr>
+      <tr><td><code>16383</code></td><td>Protocol</td><td>One 15-byte chunk of the protostone byte stream. Repeated as many times as needed.</td></tr>
+    </tbody>
+  </table>
+</div>
+<p>16383 is <code>2<sup>14</sup> - 1</code>, and its LEB128 encoding is always the two bytes <code>ff 7f</code>.
+  Spotting <code>ff7f</code> repeatedly in an <code>OP_RETURN</code> is a reliable sign that you are looking at
+  a protostone.</p>
+
+<h2 id="chunks">3. The 15-byte rule</h2>
+<p>Layer 3 is the step most re-implementations miss. The protostone byte stream is cut into groups of 15 bytes.
+  Each group is read as a <strong>little-endian</strong> integer and becomes one <code>u128</code> value.</p>
+<div class="note">
+  <span class="t">Why 15 and not 16</span>
+  <p>A <code>u128</code> LEB128-encodes to at most 19 bytes. The Runes decoder treats a varint longer than 18
+    bytes as a flaw and turns the runestone into a cenotaph. Capping each value at 15 bytes of payload keeps the
+    top bits clear so the re-encoded varint always fits. The comment in
+    <code>crates/protorune-support/src/protostone.rs</code> puts it directly: never write to the 16th byte of
+    the <code>u128</code>.</p>
+</div>
+<p>The two directions are exact inverses:</p>
+<ul>
+  <li><strong>Encoding</strong> (<code>split_bytes</code>, <code>unpack</code>): take bytes 15 at a time, pad the
+    final group with zeros to 16 bytes, read little-endian.</li>
+  <li><strong>Decoding</strong> (<code>join_to_bytes</code>, <code>snap_to_15_bytes</code>): write each
+    <code>u128</code> as 16 little-endian bytes and drop the 16th, always emitting exactly 15 bytes per value.</li>
+</ul>
+<p>Because the decoder always re-expands to a full 15 bytes, a short final group comes back with trailing zero
+  bytes. That is expected and harmless at the protostone level: the record loop stops as soon as it reads a
+  protocol tag of <code>0</code>. It is <em>not</em> harmless inside a message field, which is covered
+  <a href="#message">below</a>.</p>
+
+<h2 id="records">4. Protostone records</h2>
+<p>The reassembled byte stream is LEB128-decoded again into a flat integer list, which is then read as a sequence
+  of records:</p>
+<pre><code>[ protocol_tag, length, value_0, value_1, ... value_(length-1) ]
+[ protocol_tag, length, ... ]
+...</code></pre>
+<ul>
+  <li><code>protocol_tag</code> identifies the sub-protocol. <strong>Alkanes is tag 1.</strong></li>
+  <li><code>length</code> is the number of values that belong to this record, not a byte count.</li>
+  <li>A <code>protocol_tag</code> of <code>0</code> ends the list. This is how the zero padding from layer 3 is
+    absorbed.</li>
+  <li>If <code>length</code> claims more values than remain, decoding fails with
+    <em>less values than expected</em> and the entire protostone list is rejected.</li>
+</ul>
+<p>Within a record the values are again tag and value pairs, with tag <code>0</code> ending the fields and
+  starting the body:</p>
+<div class="tablewrap">
+  <table>
+    <caption>Protostone field tags actually read by <code>Protostone::from_fields_and_tag</code>.</caption>
+    <thead><tr><th>Tag</th><th>Name</th><th>Type</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>0</code></td><td>Body</td><td>quadruples</td><td>Edicts. Every remaining value in the record belongs here.</td></tr>
+      <tr><td><code>81</code></td><td>Message</td><td>repeated u128</td><td>15-byte chunks of the cellpack calldata.</td></tr>
+      <tr><td><code>83</code></td><td>Burn</td><td>u128</td><td>Marks the record as a protoburn.</td></tr>
+      <tr><td><code>91</code></td><td>ProtoPointer</td><td>u32</td><td>Output that receives the result when the message succeeds.</td></tr>
+      <tr><td><code>93</code></td><td>Refund</td><td>u32</td><td>Output that receives the balances when the message fails.</td></tr>
+      <tr><td><code>95</code></td><td>From</td><td>u32</td><td>Edict index selector used by protoburns.</td></tr>
+    </tbody>
+  </table>
+</div>
+<p>Any other tag is parsed as a pair and then ignored. The ts-sdk enum additionally names
+  <code>SPLIT = 85</code>, but the Rust <code>Tag</code> enum has no such variant and the decoder does nothing
+  with it, so do not emit it.</p>
+
+<h2 id="body">5a. The edict body</h2>
+<p>Edicts are the transfer instructions. They are encoded as a flat run of values in groups of four:</p>
+<pre><code>block_delta, tx_delta, amount, output</code></pre>
+<p>Rules, from <code>protostone_edicts_from_integers</code> and <code>next_protostone_edict_id</code>:</p>
+<ul>
+  <li>Edicts are sorted by alkane id before encoding, and the ids are <strong>delta encoded</strong> against the
+    previous edict, starting from <code>0:0</code>.</li>
+  <li>If <code>block_delta</code> is <code>0</code>, then <code>tx_delta</code> is added to the previous
+    <code>tx</code>. Otherwise <code>tx_delta</code> is the absolute <code>tx</code> of the new id.</li>
+  <li><code>amount</code> is a raw <code>u128</code> in the alkane's own base units. Divisibility is defined by
+    the asset, and the protocol layer never rescales it.</li>
+  <li><code>amount</code> of <code>0</code> means <strong>the entire remaining balance</strong> of that alkane at
+    that point in edict processing. It does not mean zero.</li>
+  <li><code>output</code> is the destination index. Real outputs are <code>0 .. n-1</code>. Index <code>n</code>
+    spreads the amount across all non-<code>OP_RETURN</code> outputs. Indexes at or above <code>n</code> also
+    address protostone virtual outputs, which is how you hand balances to a message.</li>
+</ul>
+<div class="danger">
+  <span class="t">A body that is not a multiple of four fails silently</span>
+  <p><code>protostone_edicts_from_integers</code> returns
+    <em>edict values did not appear in sets of four</em>, but <code>from_fields_and_tag</code> discards that
+    error and substitutes an empty edict list. The protostone is still valid, the message still runs if there is
+    one, and the transfer you intended simply never happens.</p>
+</div>
+
+<h2 id="message">5b. The message field</h2>
+<p>A message carries a <strong>cellpack</strong>: the call to make. Its integer form is</p>
+<pre><code>[ target.block, target.tx, input_0, input_1, ... ]</code></pre>
+<p><code>target</code> is the <code>AlkaneId</code> to invoke, and <code>input_0</code> is by convention the
+  opcode the contract dispatches on. The list is LEB128-encoded, then cut into 15-byte chunks exactly as in
+  layer 3, and each chunk is emitted as a tag <code>81</code> field.</p>
+<div class="note">
+  <span class="t">Calldata is zero-padded, and the padding becomes inputs</span>
+  <p>Because <code>join_to_bytes</code> always writes 15 bytes per chunk, the calldata the indexer reconstructs is
+    padded with zero bytes, and <code>decode_varint_list</code> turns each of those into a zero-valued
+    <code>u128</code>. The cellpack <code>[2, 1, 77]</code> is 3 bytes on the wire and arrives as
+    <code>target 2:1</code> with inputs <code>[77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]</code>.</p>
+  <p>Pass every argument explicitly rather than relying on a default, and design opcodes so that trailing zeros
+    are harmless.</p>
+</div>
+<p>A message record must also carry <code>ProtoPointer</code> (91) and <code>Refund</code> (93). Both are
+  required by <code>Protostone::process_message</code>; a message without them is an error that rolls the
+  transaction's protostone processing back rather than refunding anything.</p>
+<p>A cellpack that decodes to fewer than two varints is rejected before anything runs. That guard is explicit in
+  <code>crates/alkanes-support/src/cellpack.rs</code> and exists because the slice expression that reads
+  <code>target.block</code> and <code>target.tx</code> would otherwise panic, and a panic stops the indexer for
+  everyone.</p>
+
+<h2 id="worked-transfer">Worked example: a transfer, byte by byte</h2>
+<p>Move <code>100000000</code> base units of alkane <code>2:1</code> to output <code>1</code>.</p>
+
+<h3 id="wt-1">Step 1: protostone integers</h3>
+<pre><code>[1, 5, 0, 2, 1, 100000000, 1]
+ |  |  |  |  |  |          |
+ |  |  |  |  |  |          output index 1
+ |  |  |  |  |  amount, raw u128
+ |  |  |  |  tx delta   (0 -&gt; 1)
+ |  |  |  block delta (0 -&gt; 2)
+ |  |  Tag 0, Body: edicts follow
+ |  five values in this record
+ protocol tag 1, alkanes</code></pre>
+
+<h3 id="wt-2">Step 2: LEB128</h3>
+<div class="tablewrap narrow">
+  <table>
+    <thead><tr><th>Bytes</th><th>Value</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>01</code></td><td>1</td><td>protocol tag, alkanes</td></tr>
+      <tr><td><code>05</code></td><td>5</td><td>record length</td></tr>
+      <tr><td><code>00</code></td><td>0</td><td>Tag 0, Body</td></tr>
+      <tr><td><code>02</code></td><td>2</td><td>block delta</td></tr>
+      <tr><td><code>01</code></td><td>1</td><td>tx delta</td></tr>
+      <tr><td><code>80 c2 d7 2f</code></td><td>100000000</td><td>amount</td></tr>
+      <tr><td><code>01</code></td><td>1</td><td>output index</td></tr>
+    </tbody>
+  </table>
+</div>
+<pre class="hexblock"><code>010500020180c2d72f01          10 bytes</code></pre>
+
+<h3 id="wt-3">Step 3: 15-byte chunk</h3>
+<p>Ten bytes is a single group. Reversed and read as a little-endian integer:</p>
+<pre class="hexblock"><code>bytes  01 05 00 02 01 80 c2 d7 2f 01
+LE     0x012fd7c2800102000501
+u128   5604910583939447391489</code></pre>
+
+<h3 id="wt-4">Step 4: runestone fields</h3>
+<pre class="hexblock"><code>[16383, 5604910583939447391489]
+
+<span class="hl">ff 7f</span>                              tag 16383
+<span class="hl2">81 8a 80 90 90 80 a0 e1 d7 df 04</span>   the chunk        13 bytes total</code></pre>
+
+<h3 id="wt-5">Step 5: script</h3>
+<pre class="hexblock"><code><span class="hl">6a</span> <span class="hl">5d</span> 0d ff7f 818a80909080a0e1d7df04</code></pre>
+<div class="fact">
+  <span class="t">Final script hex</span>
+  <pre class="hexblock"><code>6a5d0dff7f818a80909080a0e1d7df04</code></pre>
+  <p class="small">16 bytes. <code>6a</code> <code>OP_RETURN</code>, <code>5d</code> <code>OP_PUSHNUM_13</code>,
+    <code>0d</code> push 13 bytes, then the payload. Put it in one output with value 0.</p>
+</div>
+<p>The equivalent ts-sdk call:</p>
+<pre><code>const { encodedRunestone } = encodeRunestoneProtostone({
+  protostones: [
+    ProtoStone.edicts({
+      protocolTag: 1n,
+      edicts: [{
+        id: new ProtoruneRuneId(2n, 1n),
+        amount: 100000000n,
+        output: 1,
+      }],
+    }),
+  ],
+});</code></pre>
+
+<h2 id="worked-call">Worked example: a contract call</h2>
+<p>Call alkane <code>2:1</code> with opcode <code>77</code>, sending the result to output <code>0</code> and
+  refunding to output <code>1</code>.</p>
+<pre><code>cellpack           [2, 1, 77]
+cellpack LEB128    02 01 4d                      3 bytes
+one 15-byte chunk  0x4d0102 = 5046530
+
+protostone         [1, 6, 91, 0, 93, 1, 81, 5046530]
+                    |  |  |   |  |   |  |   calldata chunk
+                    |  |  |   |  |   |  Tag 81, Message
+                    |  |  |   |  |   refund pointer, output 1
+                    |  |  |   |  Tag 93, Refund
+                    |  |  |   proto pointer, output 0
+                    |  |  Tag 91, ProtoPointer
+                    |  six values
+                    protocol tag 1
+
+LEB128             01 06 5b 00 5d 01 51 82 82 b4 02      11 bytes
+chunk              3270285073163573723334145
+runestone          [16383, 3270285073163573723334145]
+payload            ff7f 818cec82d0abc0a88285d215        14 bytes</code></pre>
+<div class="fact">
+  <span class="t">Final script hex</span>
+  <pre class="hexblock"><code>6a5d0eff7f818cec82d0abc0a88285d215</code></pre>
+  <p class="small">17 bytes. Note that <code>91</code> is <code>0x5b</code> and <code>93</code> is
+    <code>0x5d</code>: the byte <code>5d</code> inside the payload is the Refund tag, not a second
+    <code>OP_PUSHNUM_13</code>.</p>
+</div>
+
+<h2 id="worked-real">Worked example: a real mainnet payload</h2>
+<p>This script appears in the alkanes-rs test corpus as a captured mainnet <code>OP_RETURN</code>:</p>
+<pre class="hexblock"><code>6a5d101600ff7f818cec8ad0abc0a8a081d215</code></pre>
+<p>Decoded, layer by layer:</p>
+<div class="tablewrap">
+  <table>
+    <thead><tr><th>Layer</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Script</td><td><code>6a</code> <code>5d</code>, then a 16-byte push</td></tr>
+      <tr><td>Runestone integers</td><td><code>[22, 0, 16383, 3270250341403247458846209]</code></td></tr>
+      <tr><td>Runes-layer fields</td><td>Tag 22 Pointer = 0. Unallocated Runes-layer balances go to output 0.</td></tr>
+      <tr><td>Protostone integers</td><td><code>[1, 6, 91, 1, 93, 1, 81, 5046304]</code></td></tr>
+      <tr><td>Protostone</td><td>tag 1, pointer output 1, refund output 1, one message chunk</td></tr>
+      <tr><td>Cellpack</td><td>target <code>32:0</code>, opcode <code>77</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<p>Alkane <code>32:0</code> is the fr-BTC system contract, so this is a wrap: opcode 77 against fr-BTC, with both
+  the success pointer and the refund pointer aimed at output 1. You can paste it into the
+  <a href="tool.html">decoder</a> and watch it come apart.</p>
+
+<h2 id="wrong">Three ways to lose an asset</h2>
+<p>All three confirm on chain. None of them produce an error a wallet can show you.</p>
+
+<h3 id="wrong-1">No magic byte</h3>
+<p>Script is <code>6a</code> followed by JSON, text, or any non-runestone payload.
+  <code>Runestone::decipher</code> finds no output with the magic and returns nothing, so the protorune indexing
+  path is never entered. Alkane balances are not moved and not cleared: they stay recorded against the outpoint
+  you just spent. That outpoint can never be spent again, so the balance is stranded permanently.</p>
+<pre class="hexblock"><code>6a 4c 0d 7b2270223a226a736f6e227d      not a runestone</code></pre>
+
+<h3 id="wrong-2">Right envelope, wrong protocol tag</h3>
+<p>Script is a valid runestone with a valid protostone, but the protocol tag is not <code>1</code>. This is
+  worse. The runestone is valid, so the indexer <em>does</em> run, loads the alkane balances from the inputs,
+  finds no protostone claiming tag 1 to assign them to, and then clears the input balances as part of normal
+  processing. The balances are destroyed rather than stranded.</p>
+
+<h3 id="wrong-3">Edict body not a multiple of four</h3>
+<p>The protostone parses, the record is accepted, and the edict list silently becomes empty. Any balance you did
+  not otherwise direct follows the default assignment instead of your intended recipient.</p>
+
+<h2 id="checklist">Encoder checklist</h2>
+<ol>
+  <li>Script starts with the two bytes <code>6a 5d</code>.</li>
+  <li>The <code>OP_RETURN</code> output has value 0 and is the only runestone in the transaction.</li>
+  <li>Everything after <code>5d</code> is data pushes only, each at most 520 bytes.</li>
+  <li>The protocol tag inside the protostone record is <code>1</code>.</li>
+  <li>The record length equals the number of values that follow it, exactly.</li>
+  <li>Edict ids are sorted and delta encoded from <code>0:0</code>, and the body length is a multiple of four.</li>
+  <li>Amounts are raw base units. <code>0</code> means the whole remaining balance, so never use it as a
+    placeholder.</li>
+  <li>Output indexes are real outputs, or deliberate virtual protostone indexes.</li>
+  <li>Message records carry both <code>ProtoPointer</code> (91) and <code>Refund</code> (93).</li>
+  <li>Cellpacks contain at least the two target values, and every argument is passed explicitly.</li>
+  <li>Round-trip your own output through a decoder before you sign.
+    <a href="tool.html">The decoder on this site</a> does that without sending anything anywhere.</li>
+</ol>
+
+</main>
+</div>
+
+<footer class="sitefoot">
+  <div class="page">
+    <dl>
+      <div><dt>Owning repository</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes">bitcoinuniverseio/alkanes</a></dd></div>
+      <div><dt>Source of truth</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes-rs">bitcoinuniverseio/alkanes-rs</a></dd></div>
+      <div><dt>Spec version</dt><dd>alkanes-rs 2.2.1-rc.4</dd></div>
+      <div><dt>Lifecycle</dt><dd>Experimental</dd></div>
+      <div><dt>Chain and network</dt><dd>Bitcoin mainnet, regtest</dd></div>
+      <div><dt>Last verified</dt><dd><time datetime="2026-09-01">1 September 2026</time></dd></div>
+    </dl>
+    <p class="footlinks">
+      <a href="https://github.com/bitcoinuniverseio/alkanes/edit/main/encoding.html">Edit this page on GitHub</a>
+      <a href="https://docs.bitcoinuniverse.io">docs.bitcoinuniverse.io</a>
+      <a href="llms.txt">llms.txt</a>
+      <a href="changelog.html">Document changelog</a>
+    </p>
+    <p>Documentation source path: <code>encoding.html</code>.</p>
+  </div>
+</footer>
+</body>
+</html>

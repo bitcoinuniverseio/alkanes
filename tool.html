@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Protostone encoder and decoder | Alkanes</title>
+<meta name="description" content="Encode an alkanes edict into OP_RETURN script hex, or decode a script and see what an indexer reads from it. Runs entirely in your browser, nothing is sent.">
+<link rel="canonical" href="https://bitcoinuniverseio.github.io/alkanes/tool.html">
+<link rel="search-base" href="./">
+<meta name="theme-color" content="#fbfcfb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#04161c" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Alkanes protocol documentation">
+<meta property="og:title" content="Protostone encoder and decoder">
+<meta property="og:description" content="Check an alkanes OP_RETURN payload before you sign it. Pure client-side, nothing is logged or transmitted.">
+<meta property="og:url" content="https://bitcoinuniverseio.github.io/alkanes/tool.html">
+<meta property="og:image" content="https://bitcoinuniverseio.github.io/alkanes/og.svg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
+<script src="site.js" defer></script>
+<script src="protostone.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead-in">
+    <a class="wordmark" href="./">
+      <svg width="34" height="20" viewBox="0 0 34 20" aria-hidden="true" focusable="false">
+        <path d="M2 15 L9 5 L16 15 L23 5 L30 15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="23" cy="5" r="3.2" fill="var(--accent)"/>
+      </svg>
+      Alkanes <small>protocol docs</small>
+    </a>
+    <nav aria-label="Primary">
+      <a href="./">Overview</a>
+      <a href="encoding.html">Encoding</a>
+      <a href="specification.html">Specification</a>
+      <a href="guide.html">Guide</a>
+      <a href="reference.html">Reference</a>
+      <a href="test-vectors.html">Test vectors</a>
+      <a href="tool.html" aria-current="page">Tool</a>
+      <a href="changelog.html">Changelog</a>
+    </nav>
+    <div class="mast-tools">
+      <div class="search-wrap" id="search-wrap" hidden>
+        <span class="slash" aria-hidden="true">/</span>
+        <label class="skip" for="search-input">Search this documentation</label>
+        <input id="search-input" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-controls="search-results">
+        <ul id="search-results" aria-label="Search results"></ul>
+      </div>
+      <button class="ghost" id="theme-toggle" hidden>Dark</button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<div class="page">
+
+<p class="eyebrow">Client-side tool</p>
+<h1>Protostone encoder and decoder</h1>
+<p class="lede">Build the exact script hex for an alkanes edict, or take a script hex apart field by field and see
+  what an indexer would actually do with it. The encoding rules follow
+  <a href="https://github.com/bitcoinuniverseio/alkanes-rs">alkanes-rs</a> 2.2.1-rc.4, protocol tag 1, Bitcoin
+  mainnet and regtest.</p>
+
+<div class="note">
+  <span class="t">Privacy</span>
+  <p>Everything happens in your browser. This page makes no network requests, stores nothing, and logs nothing.
+    You can read <a href="protostone.js">protostone.js</a> and confirm that for yourself, or save the page and
+    run it offline.</p>
+</div>
+
+<noscript>
+  <div class="danger">
+    <span class="t">JavaScript is off</span>
+    <p>This tool needs JavaScript. Everything else on this site works without it. The
+      <a href="encoding.html">encoding page</a> gives the full byte layout with worked examples you can follow
+      by hand, and the <a href="test-vectors.html">test vectors</a> give ready-made inputs and expected
+      outputs.</p>
+  </div>
+</noscript>
+
+<div class="tool-no-js noscript">
+  <p>The interactive encoder and decoder load with JavaScript. Without it, use the worked examples on the
+    <a href="encoding.html">encoding page</a> and the <a href="test-vectors.html">test vectors</a>.</p>
+</div>
+
+<div class="tool-needs-js" hidden>
+  <div class="tabs" role="tablist" aria-label="Tool mode">
+    <button type="button" role="tab" data-panel="panel-encode" aria-selected="true" aria-controls="panel-encode" id="tab-encode">Encode an edict</button>
+    <button type="button" role="tab" data-panel="panel-decode" aria-selected="false" aria-controls="panel-decode" id="tab-decode">Decode a script</button>
+  </div>
+
+  <section id="panel-encode" class="tool" role="tabpanel" aria-labelledby="tab-encode">
+    <h2 id="encode-h">Encode a transfer</h2>
+    <p class="small muted">Produces a single-edict protostone: the payload for moving one alkane to one output.</p>
+    <form id="encode-form">
+      <div class="fieldrow">
+        <div class="field">
+          <label for="e-tag">Protocol tag</label>
+          <p class="hint">1 is alkanes.</p>
+          <input type="text" id="e-tag" value="1" inputmode="numeric" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="e-block">Alkane id block</label>
+          <p class="hint">The left half of <code>block:tx</code>.</p>
+          <input type="text" id="e-block" value="2" inputmode="numeric" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="e-tx">Alkane id tx</label>
+          <p class="hint">The right half.</p>
+          <input type="text" id="e-tx" value="1" inputmode="numeric" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+      <div class="fieldrow">
+        <div class="field">
+          <label for="e-amount">Amount</label>
+          <p class="hint">Raw base units. 0 means the entire remaining balance.</p>
+          <input type="text" id="e-amount" value="100000000" inputmode="numeric" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="e-output">Output index</label>
+          <p class="hint">Which vout receives it.</p>
+          <input type="text" id="e-output" value="1" inputmode="numeric" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+      <button type="submit" class="run">Encode</button>
+    </form>
+    <div class="out" id="encode-out" role="status" aria-live="polite"></div>
+  </section>
+
+  <section id="panel-decode" class="tool" role="tabpanel" aria-labelledby="tab-decode" hidden>
+    <h2 id="decode-h">Decode a script</h2>
+    <p class="small muted">Paste the full <code>scriptPubKey</code> hex of an <code>OP_RETURN</code> output.</p>
+    <form id="decode-form">
+      <div class="field">
+        <label for="d-hex">OP_RETURN script hex</label>
+        <p class="hint">Spaces, colons, and a leading <code>0x</code> are all fine.</p>
+        <textarea id="d-hex" spellcheck="false" autocomplete="off">6a5d0dff7f818a80909080a0e1d7df04</textarea>
+      </div>
+      <button type="submit" class="run">Decode</button>
+    </form>
+    <div class="out" id="decode-out" role="status" aria-live="polite"></div>
+
+    <h3 id="samples">Try one</h3>
+    <ul class="small">
+      <li><button type="button" class="ghost" data-sample="6a5d0dff7f818a80909080a0e1d7df04">Transfer 2:1 to output 1</button></li>
+      <li><button type="button" class="ghost" data-sample="6a5d101600ff7f818cec8ad0abc0a8a081d215">Real mainnet call to fr-BTC</button></li>
+      <li><button type="button" class="ghost" data-sample="6a5d19ff7f818a80909080fa83808298d885a0d78051ff7f8285d215">Two protostones, edicts then message</button></li>
+      <li><button type="button" class="ghost" data-sample="6a347b2270223a22616c6b616e6573222c226f70223a227472616e73666572222c226964223a22323a31222c22616d74223a2231227d">A JSON OP_RETURN, which is not a protostone</button></li>
+      <li><button type="button" class="ghost" data-sample="6a5d09ff7f81888090908019">Edict body of three values</button></li>
+      <li><button type="button" class="ghost" data-sample="6a5d0dff7f8d8a80909080a0e1d7df04">Right envelope, wrong protocol tag</button></li>
+    </ul>
+  </section>
+</div>
+
+<h2 id="what-it-checks">What the decoder checks</h2>
+<ol>
+  <li>That the script starts <code>6a 5d</code>, and says plainly what it means if it does not.</li>
+  <li>That every byte after the magic is a data push, concatenating pushes the way the reference decoder does.</li>
+  <li>LEB128 decoding of the runestone payload, with the same 18-byte varint limit.</li>
+  <li>Which Runes-layer tags are present, including the tag 22 pointer.</li>
+  <li>Reassembly of the tag 16383 chunks into the protostone byte stream, 15 bytes per value.</li>
+  <li>Every protostone record: protocol tag, declared length, and each recognised field with its meaning.</li>
+  <li>Edicts, with the delta decoding undone so you see real ids, and the sets-of-four failure surfaced
+    explicitly even though alkanes-rs swallows it.</li>
+  <li>Message calldata parsed as a cellpack, with the target block explained and the opcode identified.</li>
+</ol>
+
+<h2 id="limits">What it does not do</h2>
+<ul>
+  <li>It does not build transactions, sign anything, or touch a wallet.</li>
+  <li>It does not know your transaction's outputs, so it cannot tell you whether an output index is in range.
+    It flags obviously impossible values only.</li>
+  <li>It does not execute contracts. Use the <code>simulate</code> view functions for that.</li>
+  <li>It encodes single-edict transfers. Multi-edict and message protostones are documented on the
+    <a href="encoding.html">encoding page</a> and can be checked here in the decoder.</li>
+</ul>
+
+</div>
+</main>
+
+<footer class="sitefoot">
+  <div class="page">
+    <dl>
+      <div><dt>Owning repository</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes">bitcoinuniverseio/alkanes</a></dd></div>
+      <div><dt>Source of truth</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes-rs">bitcoinuniverseio/alkanes-rs</a></dd></div>
+      <div><dt>Spec version</dt><dd>alkanes-rs 2.2.1-rc.4</dd></div>
+      <div><dt>Lifecycle</dt><dd>Experimental</dd></div>
+      <div><dt>Chain and network</dt><dd>Bitcoin mainnet, regtest</dd></div>
+      <div><dt>Last verified</dt><dd><time datetime="2026-09-01">1 September 2026</time></dd></div>
+    </dl>
+    <p class="footlinks">
+      <a href="https://github.com/bitcoinuniverseio/alkanes/edit/main/tool.html">Edit this page on GitHub</a>
+      <a href="https://docs.bitcoinuniverse.io">docs.bitcoinuniverse.io</a>
+      <a href="llms.txt">llms.txt</a>
+      <a href="changelog.html">Document changelog</a>
+    </p>
+    <p>Documentation source path: <code>tool.html</code>. Tool source: <code>protostone.js</code>.</p>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,76 @@
+# Alkanes protocol documentation
+
+> Alkanes is a Bitcoin metaprotocol that runs WebAssembly smart contracts over Bitcoin.
+> Token balances are carried as protorunes inside protostones, and a protostone rides inside
+> a runestone in an OP_RETURN output whose script begins 6a 5d (OP_RETURN, OP_PUSHNUM_13).
+> Alkanes is protocol tag 1. State is derived by indexers replaying blocks; there is no
+> alkanes chain and no alkanes network token.
+
+Site: https://bitcoinuniverseio.github.io/alkanes/
+Owning repository: https://github.com/bitcoinuniverseio/alkanes
+Source of truth for every factual claim: https://github.com/bitcoinuniverseio/alkanes-rs (version 2.2.1-rc.4)
+Central portal: https://docs.bitcoinuniverse.io
+Chain and network: Bitcoin mainnet (alkanes genesis height 880,000) and regtest
+Lifecycle: experimental
+Last verified: 2026-09-01
+
+Origin: Alkanes and its reference Rust implementation originated upstream at kungfuflex/alkanes-rs.
+Alkanes is a sub-protocol of protorunes, which extends Runes. Runes and protorunes originated
+outside Bitcoin Universe. bitcoinuniverseio/alkanes-rs is this organisation's implementation repository.
+
+## Pages
+
+- [Overview](https://bitcoinuniverseio.github.io/alkanes/): what Alkanes is in plain language, who the
+  documentation is for, transaction anatomy, Bitcoin Universe support state, entry points, attribution.
+- [Payload encoding](https://bitcoinuniverseio.github.io/alkanes/encoding.html): the exact byte layout.
+  Five layers (protostone integers, LEB128, 15-byte little-endian chunks, runestone fields with tag 16383,
+  LEB128 again, then 6a 5d plus data pushes). Protostone field tags (0 Body, 81 Message, 83 Burn,
+  91 ProtoPointer, 93 Refund, 95 From). Edict delta encoding and the sets-of-four rule. Cellpack calldata
+  and its zero padding. Three worked byte-level examples including one captured mainnet payload. The three
+  ways a wrong payload loses an asset.
+- [Specification](https://bitcoinuniverseio.github.io/alkanes/specification.html): numbered normative rules,
+  each traced to the implementing alkanes-rs source. Sections ENV (carrier), PST (protostone records),
+  ID (identifiers and reserved block numbers), EDT (edicts), MSG (messages and cellpacks), DEP (deployment),
+  EXE (execution, fuel, host functions), BAL (balances), ST (state transitions), INV (invalid conditions),
+  ACT (activation heights).
+- [Guide](https://bitcoinuniverseio.github.io/alkanes/guide.html): transfer a balance, call a contract,
+  deploy a contract, read balances and traces, support matrix, common mistakes.
+- [Reference](https://bitcoinuniverseio.github.io/alkanes/reference.html): terminology, indexer semantics
+  through metashrew, JSON-RPC surface, confirmation, reorg behaviour, mempool, fee and size considerations,
+  protocol limits, security considerations, implementation checklist.
+- [Test vectors](https://bitcoinuniverseio.github.io/alkanes/test-vectors.html): ten valid and nine invalid
+  vectors with script hex, decoded integers, and expected indexer outcomes. Includes the four protostone
+  round-trip cases from the alkanes-rs test module.
+- [Protostone tool](https://bitcoinuniverseio.github.io/alkanes/tool.html): client-side encoder and decoder.
+  No network requests, no logging, no storage.
+- [Changelog](https://bitcoinuniverseio.github.io/alkanes/changelog.html): documentation version history,
+  corrections made, and the mainnet heights at which protocol behaviour changes.
+- [404](https://bitcoinuniverseio.github.io/alkanes/404.html)
+
+## Key facts an assistant should not get wrong
+
+- The transfer payload is an encoded protostone, produced by encodeRunestoneProtostone with
+  ProtoStone.edicts({ protocolTag: 1n, edicts: [{ id, amount, output }] }). The resulting script starts 6a 5d.
+- A plain 6a OP_RETURN carrying JSON is NOT a protostone. alkanes-rs never reads it, the balance is not moved
+  and not cleared, and it is stranded against an outpoint that has already been spent.
+- A valid runestone whose only protostone has a protocol tag other than 1 is worse: processing runs, nothing
+  claims the balances, and every input balance sheet is cleared. The alkanes are destroyed.
+- Amounts are raw u128 base units. Divisibility is asset-defined. There is no fixed decimal scale; both the
+  Core protocol registry and the ecosystem capability snapshot record alkanes decimals as "asset-defined".
+- An edict amount of 0 means the entire remaining balance, not zero.
+- An edict body whose length is not a multiple of four yields an EMPTY edict list with no error surfaced.
+- Message calldata is zero-padded to whole 15-byte chunks, and the padding decodes to extra zero-valued inputs.
+- A protostone occupies virtual output N + 1 + i for a transaction with N real outputs.
+- Protoburns (tags 83 and 95) are parsed but not processed by the released indexer; the call is cfg(test) only.
+- Marketplace availability in Bitcoin Universe Core is read-only. Viewing is supported; list, update listing,
+  unlist, buy, make offer, accept offer, cancel offer, sell, settle, and reconcile are not. Recorded reason:
+  "Alkanes mutations remain read-only until exact Alkane state, transferability, builder, signed-transaction
+  validation, broadcast, settlement, and reorg recovery are deployed and proven."
+- Wallet actions (view, send, receive) and the inscribe action (mint) are supported for alkanes in Core.
+- Alkanes has no network token. Compute is metered with wasmi fuel; fees are paid in Bitcoin.
+
+## Machine-readable
+
+- Manifest: https://bitcoinuniverseio.github.io/alkanes/docs.manifest.json
+- Search index: https://bitcoinuniverseio.github.io/alkanes/search-index.json
+- Sitemap: https://bitcoinuniverseio.github.io/alkanes/sitemap.xml
