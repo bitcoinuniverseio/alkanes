@@ -4,7 +4,7 @@
   "name": "Alkanes",
   "classification": "protocol",
   "repository": "bitcoinuniverseio/alkanes",
-  "documentationUrl": "https://docs.bitcoinuniverse.io/protocols/alkanes",
+  "documentationUrl": "https://docs.bitcoinuniverse.io/protocols/alkanes/",
   "docsRoot": ".",
   "sourceRef": "main",
   "lifecycle": "experimental",
