@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Specification | Alkanes</title>
+<meta name="description" content="Numbered normative rules for Alkanes: envelope, protocol tag 1, protostone records, edicts, cellpacks, execution, state transitions, and invalid conditions.">
+<link rel="canonical" href="https://bitcoinuniverseio.github.io/alkanes/specification.html">
+<link rel="search-base" href="./">
+<meta name="theme-color" content="#fbfcfb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#04161c" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Alkanes protocol documentation">
+<meta property="og:title" content="Alkanes specification">
+<meta property="og:description" content="Numbered normative rules for the Alkanes metaprotocol, each traced to the alkanes-rs source that implements it.">
+<meta property="og:url" content="https://bitcoinuniverseio.github.io/alkanes/specification.html">
+<meta property="og:image" content="https://bitcoinuniverseio.github.io/alkanes/og.svg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
+<script src="site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead-in">
+    <a class="wordmark" href="./">
+      <svg width="34" height="20" viewBox="0 0 34 20" aria-hidden="true" focusable="false">
+        <path d="M2 15 L9 5 L16 15 L23 5 L30 15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="23" cy="5" r="3.2" fill="var(--accent)"/>
+      </svg>
+      Alkanes <small>protocol docs</small>
+    </a>
+    <nav aria-label="Primary">
+      <a href="./">Overview</a>
+      <a href="encoding.html">Encoding</a>
+      <a href="specification.html" aria-current="page">Specification</a>
+      <a href="guide.html">Guide</a>
+      <a href="reference.html">Reference</a>
+      <a href="test-vectors.html">Test vectors</a>
+      <a href="tool.html">Tool</a>
+      <a href="changelog.html">Changelog</a>
+    </nav>
+    <div class="mast-tools">
+      <div class="search-wrap" id="search-wrap" hidden>
+        <span class="slash" aria-hidden="true">/</span>
+        <label class="skip" for="search-input">Search this documentation</label>
+        <input id="search-input" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-controls="search-results">
+        <ul id="search-results" aria-label="Search results"></ul>
+      </div>
+      <button class="ghost" id="theme-toggle" hidden>Dark</button>
+    </div>
+  </div>
+</header>
+
+<div class="page with-rail">
+<aside class="rail">
+  <h2>Sections</h2>
+  <ol>
+    <li><a href="#scope">Scope and conformance</a></li>
+    <li><a href="#env">ENV. The carrier</a></li>
+    <li><a href="#pst">PST. Protostone records</a></li>
+    <li><a href="#id">ID. Identifiers</a></li>
+    <li><a href="#edt">EDT. Edicts</a></li>
+    <li><a href="#msg">MSG. Messages and cellpacks</a></li>
+    <li><a href="#dep">DEP. Deployment</a></li>
+    <li><a href="#exe">EXE. Execution</a></li>
+    <li><a href="#bal">BAL. Balances</a></li>
+    <li><a href="#st">ST. State transitions</a></li>
+    <li><a href="#inv">INV. Invalid conditions</a></li>
+    <li><a href="#act">ACT. Activation</a></li>
+  </ol>
+  <h2>Related</h2>
+  <ol>
+    <li><a href="encoding.html">Byte-level encoding</a></li>
+    <li><a href="test-vectors.html">Test vectors</a></li>
+  </ol>
+</aside>
+
+<main id="main">
+
+<p class="eyebrow">Normative</p>
+<h1>Alkanes specification</h1>
+<p class="lede">Each rule below states behaviour that alkanes-rs 2.2.1-rc.4 implements, with the source file that
+  implements it. Where the reference implementation and the upstream prose disagree, this page follows the code,
+  because the code is what determines the indexed state.</p>
+
+<h2 id="scope">Scope and conformance</h2>
+<p>This document specifies how a conforming indexer derives alkanes state from Bitcoin blocks. It does not specify
+  wallet behaviour, RPC surfaces, or contract semantics beyond the protocol boundary.</p>
+<p>The words <strong>must</strong>, <strong>must not</strong>, and <strong>may</strong> describe required
+  behaviour of a conforming indexer. An implementation that disagrees with any rule here will fork away from the
+  reference index, which in a derived-state protocol means it is simply wrong.</p>
+<div class="note">
+  <span class="t">Layering</span>
+  <p>Alkanes is a sub-protocol of <strong>protorunes</strong>, which is an extension of <strong>Runes</strong>.
+    Runes and protorunes originated outside Bitcoin Universe. Rules tagged ENV and parts of EDT describe
+    behaviour inherited from those layers as alkanes-rs implements it.</p>
+</div>
+
+<h2 id="env">ENV. The carrier</h2>
+<ol class="rules">
+  <li><span class="rid">ENV-1</span><div class="rbody">Alkanes data is carried in a Bitcoin transaction output
+    whose <code>scriptPubKey</code> begins with <code>OP_RETURN</code> (<code>0x6a</code>) immediately followed by
+    <code>OP_PUSHNUM_13</code> (<code>0x5d</code>). alkanes-rs matches this as the little-endian <code>u16</code>
+    constant <code>0x5d6a</code>.</div></li>
+  <li><span class="rid">ENV-2</span><div class="rbody">An output that does not match ENV-1 is not a runestone. An
+    indexer must not attempt to read protocol data out of it, and must not treat any other payload format,
+    including JSON, as an alkanes instruction.</div></li>
+  <li><span class="rid">ENV-3</span><div class="rbody">If several outputs match ENV-1, the first in output order
+    is the runestone.</div></li>
+  <li><span class="rid">ENV-4</span><div class="rbody">Everything after <code>OP_PUSHNUM_13</code> must be data
+    pushes. Push payloads are concatenated in order to form the runestone payload. Any non-push opcode makes the
+    runestone a cenotaph.</div></li>
+  <li><span class="rid">ENV-5</span><div class="rbody">A single push carries at most 520 bytes
+    (<code>MAX_SCRIPT_ELEMENT_SIZE</code>). Longer payloads must be split across consecutive pushes.</div></li>
+  <li><span class="rid">ENV-6</span><div class="rbody">The payload is a sequence of LEB128 varints. A varint
+    longer than 18 bytes, or one whose final byte sets disallowed bits, is a flaw and makes the runestone a
+    cenotaph.</div></li>
+  <li><span class="rid">ENV-7</span><div class="rbody">Varints are read as tag and value pairs until tag
+    <code>0</code> (Body) appears, after which all remaining values are Runes-layer edicts. Protostone data is
+    carried in fields with tag <code>16383</code>, repeated as needed.</div></li>
+  <li><span class="rid">ENV-8</span><div class="rbody">The concatenated tag <code>16383</code> values are expanded
+    to the protostone byte stream by writing each value as 16 little-endian bytes and discarding the 16th, so
+    every value contributes exactly 15 bytes. The inverse operation, used when encoding, reads 15 bytes at a time
+    little-endian.</div></li>
+</ol>
+<p class="small muted">Source: <code>crates/ordinals/src/runestone.rs</code>,
+  <code>crates/ordinals/src/varint.rs</code>, <code>crates/ordinals/src/runestone/tag.rs</code>,
+  <code>crates/protorune-support/src/protostone.rs</code>.</p>
+
+<h2 id="pst">PST. Protostone records</h2>
+<ol class="rules">
+  <li><span class="rid">PST-1</span><div class="rbody">The protostone byte stream is LEB128-decoded into a flat
+    integer list and read as consecutive records of the form
+    <code>[protocol_tag, length, value × length]</code>.</div></li>
+  <li><span class="rid">PST-2</span><div class="rbody">A <code>protocol_tag</code> of <code>0</code> terminates
+    the record list. This absorbs the zero padding produced by ENV-8.</div></li>
+  <li><span class="rid">PST-3</span><div class="rbody">If <code>length</code> exceeds the number of remaining
+    values, decoding of the entire protostone list fails.</div></li>
+  <li><span class="rid">PST-4</span><div class="rbody"><strong>Alkanes is protocol tag <code>1</code>.</strong>
+    Records with any other tag are decoded but are not alkanes records.</div></li>
+  <li><span class="rid">PST-5</span><div class="rbody">Within a record, values are tag and value pairs until tag
+    <code>0</code> (Body), after which all remaining values are edict data. Recognised tags are Message
+    <code>81</code>, Burn <code>83</code>, ProtoPointer <code>91</code>, Refund <code>93</code>, and From
+    <code>95</code>. Unrecognised tags are consumed as pairs and ignored.</div></li>
+  <li><span class="rid">PST-6</span><div class="rbody">Each protostone occupies a virtual output. For a
+    transaction with <code>N</code> real outputs, the protostone at index <code>i</code> (zero based) occupies
+    virtual output <code>N + 1 + i</code>. Edicts may target these indexes.</div></li>
+  <li><span class="rid">PST-7</span><div class="rbody">All alkane balances carried by the transaction's inputs are
+    assigned to the virtual output of the <strong>first</strong> record whose <code>protocol_tag</code> is
+    <code>1</code>. If no record carries tag <code>1</code>, no such assignment happens.</div></li>
+  <li><span class="rid">PST-8</span><div class="rbody">Protoburns (Burn <code>83</code> and From <code>95</code>)
+    are parsed but <strong>not processed</strong> by the released indexer. The call to
+    <code>process_burns</code> is compiled only under <code>cfg(test)</code>, with a source comment deferring
+    activation to a future block. An implementation must not process protoburns on mainnet today.</div></li>
+</ol>
+<p class="small muted">Source: <code>crates/protorune-support/src/protostone.rs</code>,
+  <code>crates/protorune/src/lib.rs</code> (<code>index_protostones</code>).</p>
+
+<h2 id="id">ID. Identifiers</h2>
+<ol class="rules">
+  <li><span class="rid">ID-1</span><div class="rbody">An alkane is identified by an <code>AlkaneId</code>, a pair
+    of <code>u128</code> values written <code>block:tx</code> and serialised as 32 bytes, two little-endian
+    <code>u128</code>s.</div></li>
+  <li><span class="rid">ID-2</span><div class="rbody">An id with <code>block == 0</code> and <code>tx &gt; 0</code>
+    is not constructible and must be rejected.</div></li>
+  <li><span class="rid">ID-3</span><div class="rbody">The <code>block</code> value carries meaning:</div>
+    <div class="rbody"><div class="tablewrap narrow"><table>
+      <thead><tr><th>block</th><th>Meaning</th><th>tx</th></tr></thead>
+      <tbody>
+        <tr><td><code>0</code></td><td>Null, non-contract caller</td><td><code>0</code></td></tr>
+        <tr><td><code>1</code></td><td>CREATE: deploy the binary in the transaction witness</td><td><code>0</code></td></tr>
+        <tr><td><code>2</code></td><td>Sequentially numbered contract</td><td>sequence number</td></tr>
+        <tr><td><code>3</code></td><td>CREATERESERVED: deploy to reserved id</td><td>reserved number</td></tr>
+        <tr><td><code>4</code></td><td>Reserved-number contract</td><td>reserved number</td></tr>
+        <tr><td><code>5</code></td><td>Factory clone of a sequence-numbered template</td><td>template sequence</td></tr>
+        <tr><td><code>6</code></td><td>Factory clone of a reserved-number template</td><td>template reserved number</td></tr>
+        <tr><td><code>32</code></td><td>System precompiled contract</td><td><code>0</code> fr-BTC, <code>1</code> fr-Sigil</td></tr>
+        <tr><td><code>800000000</code></td><td>Virtual precompile</td><td><code>0</code> block header, <code>1</code> coinbase tx, <code>2</code> diesel mint count, <code>3</code> total miner fee</td></tr>
+      </tbody></table></div></div></li>
+  <li><span class="rid">ID-4</span><div class="rbody">Sequence numbers are allocated from a single global counter
+    at <code>/alkanes/sequence</code>, incremented once per successful CREATE or factory deployment.</div></li>
+</ol>
+<p class="small muted">Source: <code>crates/alkanes-support/src/id.rs</code>, <code>src/vm/utils.rs</code>.</p>
+
+<h2 id="edt">EDT. Edicts</h2>
+<ol class="rules">
+  <li><span class="rid">EDT-1</span><div class="rbody">The edict body is a flat run of values read in groups of
+    four: <code>block_delta, tx_delta, amount, output</code>.</div></li>
+  <li><span class="rid">EDT-2</span><div class="rbody">Ids are delta encoded from <code>0:0</code>. The next id is
+    <code>previous.block + block_delta</code>, and its <code>tx</code> is
+    <code>previous.tx + tx_delta</code> when <code>block_delta</code> is <code>0</code>, otherwise
+    <code>tx_delta</code> taken absolutely.</div></li>
+  <li><span class="rid">EDT-3</span><div class="rbody">A body whose length is not a multiple of four produces the
+    error <em>edict values did not appear in sets of four</em>. The reference implementation discards this error
+    and substitutes an empty edict list, so the protostone remains valid and the transfers do not happen. A
+    conforming indexer must reproduce this, including the silence.</div></li>
+  <li><span class="rid">EDT-4</span><div class="rbody"><code>amount</code> is a raw <code>u128</code> in the
+    alkane's own base units. The protocol layer does not apply divisibility.</div></li>
+  <li><span class="rid">EDT-5</span><div class="rbody">An <code>amount</code> of <code>0</code> transfers the
+    entire remaining balance of that alkane at that point in edict processing.</div></li>
+  <li><span class="rid">EDT-6</span><div class="rbody">An <code>output</code> equal to the number of transaction
+    outputs spreads the amount across all non-<code>OP_RETURN</code> outputs. Values above that address protostone
+    virtual outputs per PST-6.</div></li>
+  <li><span class="rid">EDT-7</span><div class="rbody">Edicts are applied in encoded order, each drawing from the
+    running unallocated balance. An edict for more than the remaining balance transfers what remains.</div></li>
+  <li><span class="rid">EDT-8</span><div class="rbody">Within a protostone, the message is processed
+    <strong>before</strong> the edicts. Edicts then operate on the balance sitting at the protostone's pointer
+    output. If the message failed and refunded, the edicts of that protostone are skipped entirely.</div></li>
+  <li><span class="rid">EDT-9</span><div class="rbody">Balance arithmetic is checked. Overflow on addition is an
+    error that rolls the enclosing scope back.</div></li>
+</ol>
+<p class="small muted">Source: <code>crates/protorune-support/src/protostone.rs</code>,
+  <code>crates/protorune/src/lib.rs</code> (<code>process_edicts</code>,
+  <code>handle_transfer_runes_to_vout</code>).</p>
+
+<h2 id="msg">MSG. Messages and cellpacks</h2>
+<ol class="rules">
+  <li><span class="rid">MSG-1</span><div class="rbody">A record whose Message field (<code>81</code>) is non-empty
+    is a message. Its chunks are expanded per ENV-8 into the calldata byte string.</div></li>
+  <li><span class="rid">MSG-2</span><div class="rbody">Calldata is LEB128-decoded into a <code>u128</code> list.
+    The first two values are <code>target.block</code> and <code>target.tx</code>; the remainder are the inputs.
+    By convention <code>inputs[0]</code> is the opcode the contract dispatches on.</div></li>
+  <li><span class="rid">MSG-3</span><div class="rbody">A calldata list of fewer than two values is rejected before
+    execution. This guard is explicit in the reference implementation because the alternative was a panic that
+    would halt indexing network wide.</div></li>
+  <li><span class="rid">MSG-4</span><div class="rbody">Because ENV-8 always emits whole 15-byte chunks, calldata
+    arrives zero-padded and the padding decodes to additional zero-valued inputs. Encoders must pass every
+    argument explicitly.</div></li>
+  <li><span class="rid">MSG-5</span><div class="rbody">A message record must carry both ProtoPointer
+    (<code>91</code>) and Refund (<code>93</code>). A missing one is the error <em>Missing pointer</em> or
+    <em>Missing refund pointer</em>, which aborts protostone processing for the transaction rather than
+    refunding.</div></li>
+  <li><span class="rid">MSG-6</span><div class="rbody">Both pointers must be no greater than
+    <code>num_outputs + num_protostones</code>. Otherwise the error is <em>Invalid output pointer</em>.</div></li>
+  <li><span class="rid">MSG-7</span><div class="rbody">The protostone's virtual output must be strictly less than
+    <code>num_outputs + 100</code>. This bounds the number of message-bearing protostones in one
+    transaction.</div></li>
+  <li><span class="rid">MSG-8</span><div class="rbody">A message is only executed when its record's
+    <code>protocol_tag</code> equals the indexer's protocol tag. For alkanes that is <code>1</code>.</div></li>
+</ol>
+<p class="small muted">Source: <code>crates/protorune/src/protostone.rs</code>
+  (<code>process_message</code>), <code>crates/alkanes-support/src/cellpack.rs</code>,
+  <code>src/message.rs</code>.</p>
+
+<h2 id="dep">DEP. Deployment</h2>
+<ol class="rules">
+  <li><span class="rid">DEP-1</span><div class="rbody">A cellpack whose target is <code>1:0</code> is a CREATE.
+    The WASM binary is read from the envelope in the transaction's first input witness, stored gzip-compressed at
+    <code>/alkanes/&lt;id&gt;</code>, and the contract is assigned the id <code>2:&lt;next_sequence&gt;</code>.</div></li>
+  <li><span class="rid">DEP-2</span><div class="rbody">A cellpack whose target has <code>block == 3</code> is a
+    CREATERESERVED. The contract is deployed at <code>4:&lt;tx&gt;</code>. It fails if a binary already exists at
+    that id.</div></li>
+  <li><span class="rid">DEP-3</span><div class="rbody">A cellpack whose target has <code>block == 5</code> or
+    <code>block == 6</code> is a factory deployment. The new contract receives
+    <code>2:&lt;next_sequence&gt;</code> and stores a 32-byte pointer to the template's id instead of a copy of
+    the binary. It shares the template's code but has its own storage and balances.</div></li>
+  <li><span class="rid">DEP-4</span><div class="rbody">Deployment maps the new id to its creation outpoint at
+    <code>/alkanes_id_to_outpoint/&lt;id&gt;</code>.</div></li>
+  <li><span class="rid">DEP-5</span><div class="rbody">For fuel accounting, transactions containing a deployment
+    cellpack have their first witness stripped before virtual size is computed, so a large binary does not
+    consume a disproportionate share of the block's fuel.</div></li>
+</ol>
+<p class="small muted">Source: <code>src/vm/utils.rs</code> (<code>run_special_cellpacks</code>),
+  <code>src/vm/fuel.rs</code>.</p>
+
+<h2 id="exe">EXE. Execution</h2>
+<ol class="rules">
+  <li><span class="rid">EXE-1</span><div class="rbody">Contracts execute in <code>wasmi</code>, a deterministic
+    interpreter, with fuel metering enabled. Given the same binary, fuel, and context, execution always produces
+    the same result.</div></li>
+  <li><span class="rid">EXE-2</span><div class="rbody">A contract must export <code>__execute</code>. It may
+    export <code>__meta</code> for ABI description. It reads its context through host functions and returns a
+    pointer to a response buffer.</div></li>
+  <li><span class="rid">EXE-3</span><div class="rbody">The sandbox provides no network, no filesystem, and no
+    randomness. The only interface is the fixed set of host functions in the <code>env</code> namespace.</div></li>
+  <li><span class="rid">EXE-4</span><div class="rbody">Memory is bounded by <code>MEMORY_LIMIT</code> =
+    43,554,432 bytes. Allocation beyond it traps.</div></li>
+  <li><span class="rid">EXE-5</span><div class="rbody">Nested contract calls are limited to a checkpoint depth of
+    75.</div></li>
+  <li><span class="rid">EXE-6</span><div class="rbody">Three call forms exist. <code>__call</code> sets
+    <code>caller</code> to the current contract and <code>myself</code> to the target, committing state on
+    success. <code>__delegatecall</code> leaves <code>caller</code> and <code>myself</code> unchanged.
+    <code>__staticcall</code> always rolls back state changes.</div></li>
+  <li><span class="rid">EXE-7</span><div class="rbody">A nested call that reverts returns a negative value to its
+    caller and does not abort it. The caller may inspect the result and continue.</div></li>
+  <li><span class="rid">EXE-8</span><div class="rbody">Revert data begins with the four bytes
+    <code>08 c3 79 a0</code> followed by a UTF-8 error message.</div></li>
+  <li><span class="rid">EXE-9</span><div class="rbody">Each block has a total fuel budget, split across
+    transactions in proportion to virtual size with a per-transaction floor. Unused fuel returns to the block
+    pool. On failure all fuel allocated to the transaction is drained rather than returned.</div></li>
+</ol>
+<div class="tablewrap narrow">
+  <table>
+    <caption>Fuel budget by network, from <code>src/vm/fuel.rs</code>.</caption>
+    <thead><tr><th>Network</th><th>Initial block fuel</th><th>After change height</th><th>Change height</th></tr></thead>
+    <tbody>
+      <tr><td>Bitcoin mainnet</td><td>100,000,000</td><td>1,000,000,000</td><td>899,087</td></tr>
+      <tr><td>Regtest</td><td>100,000,000</td><td>1,000,000,000</td><td>0</td></tr>
+    </tbody>
+  </table>
+</div>
+<p class="small muted">Source: <code>src/vm/instance.rs</code>, <code>src/vm/extcall.rs</code>,
+  <code>src/vm/host_functions.rs</code>, <code>src/vm/fuel.rs</code>, <code>src/vm/constants.rs</code>.</p>
+
+<h2 id="bal">BAL. Balances</h2>
+<ol class="rules">
+  <li><span class="rid">BAL-1</span><div class="rbody">Balances are held per outpoint, namespaced by protocol tag,
+    at <code>/runes/proto/1/byoutpoint/&lt;outpoint&gt;</code>. Contract-held balances live at
+    <code>/alkanes/&lt;what&gt;/balances/&lt;who&gt;</code>.</div></li>
+  <li><span class="rid">BAL-2</span><div class="rbody">Incoming balances are credited to the target contract
+    before execution and debited after, according to the transfers the contract returns.</div></li>
+  <li><span class="rid">BAL-3</span><div class="rbody">A contract may transfer more of a token than it holds only
+    when that token <em>is</em> the contract itself. This is how an alkane mints its own supply. Any other
+    shortfall is a balance underflow error. Supply control is the contract author's responsibility, not the
+    protocol's.</div></li>
+  <li><span class="rid">BAL-4</span><div class="rbody">After a successful message the indexer reconciles: the
+    virtual output's sheet is removed, outgoing transfers are added to the pointer output, and runtime balances
+    are stored at virtual index <code>u32::MAX</code>.</div></li>
+  <li><span class="rid">BAL-5</span><div class="rbody">When protostones are present, every transaction input's
+    stored balance sheet is cleared at the end of processing. The source comment is explicit that all inputs must
+    be used up, even in cenotaphs.</div></li>
+</ol>
+<p class="small muted">Source: <code>src/utils.rs</code>,
+  <code>crates/protorune/src/balance_sheet.rs</code>, <code>crates/protorune/src/lib.rs</code>.</p>
+
+<h2 id="st">ST. State transitions</h2>
+<figure class="figframe">
+  <svg viewBox="0 0 640 250" role="img" aria-labelledby="stT stD">
+    <title id="stT">Order of operations for one transaction</title>
+    <desc id="stD">Six steps in sequence: decipher the runestone, decode protostones, load and concatenate input balance sheets, assign all input balances to the first protostone with protocol tag 1, then for each protostone run the message and then the edicts, and finally save the output balance sheets and clear every input sheet.</desc>
+    <g font-family="ui-monospace, Menlo, Consolas, monospace" font-size="11.5">
+      <g stroke="var(--line-strong)" fill="var(--surface-2)" stroke-width="1">
+        <rect x="10" y="14" width="290" height="34" rx="3"/>
+        <rect x="10" y="58" width="290" height="34" rx="3"/>
+        <rect x="10" y="102" width="290" height="34" rx="3"/>
+        <rect x="10" y="146" width="290" height="34" rx="3"/>
+      </g>
+      <rect x="340" y="14" width="290" height="78" rx="3" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.4"/>
+      <rect x="340" y="102" width="290" height="34" rx="3" fill="var(--surface-2)" stroke="var(--line-strong)" stroke-width="1"/>
+      <rect x="340" y="146" width="290" height="34" rx="3" fill="var(--surface-2)" stroke="var(--line-strong)" stroke-width="1"/>
+      <g fill="var(--ink)">
+        <text x="24" y="35">1  decipher runestone (6a 5d)</text>
+        <text x="24" y="79">2  decode protostone records</text>
+        <text x="24" y="123">3  load + concat input sheets</text>
+        <text x="24" y="167">4  assign all to first tag-1 record</text>
+        <text x="354" y="35">5  per protostone, in order:</text>
+        <text x="354" y="55" fill="var(--muted)">   a. message, if tag matches</text>
+        <text x="354" y="73" fill="var(--muted)">   b. edicts, unless message refunded</text>
+        <text x="354" y="123">6  save output sheets</text>
+        <text x="354" y="167">7  clear every input sheet</text>
+      </g>
+    </g>
+    <g stroke="var(--bond)" stroke-width="1.5" fill="none" marker-end="url(#arr3)">
+      <path d="M155 48 L155 56"/><path d="M155 92 L155 100"/><path d="M155 136 L155 144"/>
+      <path d="M300 163 L320 163 L320 53 L336 53"/>
+      <path d="M485 92 L485 100"/><path d="M485 136 L485 144"/>
+    </g>
+    <defs>
+      <marker id="arr3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" fill="var(--bond)"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>Steps 3 through 7 only run when at least one protostone record was decoded. If none was, nothing on
+    this diagram happens and alkane balances are untouched.</figcaption>
+</figure>
+<ol class="rules">
+  <li><span class="rid">ST-1</span><div class="rbody">All state changes for one message are wrapped in a
+    checkpoint. On failure the checkpoint is rolled back and the in-memory balance map is restored from a
+    snapshot taken before the message, so the two stores unwind together.</div></li>
+  <li><span class="rid">ST-2</span><div class="rbody">On message failure, balances are directed to the refund
+    pointer and the protostone's edicts are skipped.</div></li>
+  <li><span class="rid">ST-3</span><div class="rbody">Blocks are processed in order. Each block's fuel tank is
+    initialised fresh.</div></li>
+  <li><span class="rid">ST-4</span><div class="rbody">One transaction is hardcoded as blacklisted and skipped
+    entirely: <code>5cbb0c466dd08d7af9223d45105fbbf0fdc9fb7cda4831c183d6b0cb5ba60fb0</code>.</div></li>
+</ol>
+
+<h2 id="inv">INV. Invalid conditions</h2>
+<p>These are the outcomes an implementer most often gets wrong. None of them produce a visible failure on chain.</p>
+<div class="tablewrap">
+  <table>
+    <thead><tr><th>Condition</th><th>Outcome</th><th>Effect on alkane balances</th></tr></thead>
+    <tbody>
+      <tr><td>No output matches <code>6a 5d</code></td><td>No runestone; protostone processing never runs</td><td>Untouched in the index, so stranded at the now-spent outpoint</td></tr>
+      <tr><td>Runestone present, no tag 16383 field</td><td>No protostones decoded</td><td>Untouched, stranded</td></tr>
+      <tr><td>Protostone present but no record has tag 1</td><td>Protostone processing runs; nothing claims the balances</td><td>Cleared from the inputs, so destroyed</td></tr>
+      <tr><td>Record length exceeds remaining values</td><td><em>less values than expected</em>; whole protostone list rejected</td><td>Untouched, stranded</td></tr>
+      <tr><td>Edict body not a multiple of four</td><td>Empty edict list, no error surfaced</td><td>Follow the default assignment, not the intent</td></tr>
+      <tr><td>Message without pointer or refund pointer</td><td><em>Missing pointer</em>; protostone processing aborts for the transaction</td><td>Untouched, stranded</td></tr>
+      <tr><td>Pointer above <code>num_outputs + num_protostones</code></td><td><em>Invalid output pointer</em></td><td>Untouched, stranded</td></tr>
+      <tr><td>Cellpack shorter than two varints</td><td>Rejected before execution; protostone skipped and refunded</td><td>Refunded to the refund pointer</td></tr>
+      <tr><td>Contract traps, reverts, or runs out of fuel</td><td>Rollback, revert trace saved, remaining transaction fuel drained</td><td>Refunded to the refund pointer</td></tr>
+      <tr><td>Non-push opcode or oversized varint in the payload</td><td>Cenotaph</td><td>Cleared from the inputs, so destroyed</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2 id="act">ACT. Activation</h2>
+<ol class="rules">
+  <li><span class="rid">ACT-1</span><div class="rbody">Alkanes is inactive below the network's genesis height. On
+    Bitcoin mainnet that height is <strong>880,000</strong>. On regtest it is <code>0</code>.</div></li>
+  <li><span class="rid">ACT-2</span><div class="rbody">Below the genesis height the indexer still processes the
+    Runes layer, which activates earlier, but performs no alkanes setup or execution.</div></li>
+  <li><span class="rid">ACT-3</span><div class="rbody">Three system contracts are bootstrapped: the genesis
+    alkane at <code>2:0</code>, fr-BTC at <code>32:0</code>, and fr-Sigil at <code>32:1</code>.</div></li>
+  <li><span class="rid">ACT-4</span><div class="rbody">The genesis alkane is upgraded at fixed mainnet heights
+    908,888 and 917,888. Fuel accounting changes at mainnet height 899,087.</div></li>
+</ol>
+<p class="small muted">Source: <code>src/network.rs</code>, <code>src/indexer.rs</code>,
+  <code>src/vm/fuel.rs</code>.</p>
+
+</main>
+</div>
+
+<footer class="sitefoot">
+  <div class="page">
+    <dl>
+      <div><dt>Owning repository</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes">bitcoinuniverseio/alkanes</a></dd></div>
+      <div><dt>Source of truth</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes-rs">bitcoinuniverseio/alkanes-rs</a></dd></div>
+      <div><dt>Spec version</dt><dd>alkanes-rs 2.2.1-rc.4</dd></div>
+      <div><dt>Lifecycle</dt><dd>Experimental</dd></div>
+      <div><dt>Chain and network</dt><dd>Bitcoin mainnet, regtest</dd></div>
+      <div><dt>Last verified</dt><dd><time datetime="2026-09-01">1 September 2026</time></dd></div>
+    </dl>
+    <p class="footlinks">
+      <a href="https://github.com/bitcoinuniverseio/alkanes/edit/main/specification.html">Edit this page on GitHub</a>
+      <a href="https://docs.bitcoinuniverse.io">docs.bitcoinuniverse.io</a>
+      <a href="llms.txt">llms.txt</a>
+      <a href="changelog.html">Document changelog</a>
+    </p>
+    <p>Documentation source path: <code>specification.html</code>.</p>
+  </div>
+</footer>
+</body>
+</html>

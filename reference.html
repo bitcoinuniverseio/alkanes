@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reference | Alkanes</title>
+<meta name="description" content="Alkanes reference: terminology, indexer semantics through metashrew, confirmation, reorg and mempool behaviour, fees, limits, and security considerations.">
+<link rel="canonical" href="https://bitcoinuniverseio.github.io/alkanes/reference.html">
+<link rel="search-base" href="./">
+<meta name="theme-color" content="#fbfcfb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#04161c" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Alkanes protocol documentation">
+<meta property="og:title" content="Alkanes reference">
+<meta property="og:description" content="Terminology, indexer semantics, reorg and mempool behaviour, limits, and security considerations for Alkanes.">
+<meta property="og:url" content="https://bitcoinuniverseio.github.io/alkanes/reference.html">
+<meta property="og:image" content="https://bitcoinuniverseio.github.io/alkanes/og.svg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
+<script src="site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead-in">
+    <a class="wordmark" href="./">
+      <svg width="34" height="20" viewBox="0 0 34 20" aria-hidden="true" focusable="false">
+        <path d="M2 15 L9 5 L16 15 L23 5 L30 15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="23" cy="5" r="3.2" fill="var(--accent)"/>
+      </svg>
+      Alkanes <small>protocol docs</small>
+    </a>
+    <nav aria-label="Primary">
+      <a href="./">Overview</a>
+      <a href="encoding.html">Encoding</a>
+      <a href="specification.html">Specification</a>
+      <a href="guide.html">Guide</a>
+      <a href="reference.html" aria-current="page">Reference</a>
+      <a href="test-vectors.html">Test vectors</a>
+      <a href="tool.html">Tool</a>
+      <a href="changelog.html">Changelog</a>
+    </nav>
+    <div class="mast-tools">
+      <div class="search-wrap" id="search-wrap" hidden>
+        <span class="slash" aria-hidden="true">/</span>
+        <label class="skip" for="search-input">Search this documentation</label>
+        <input id="search-input" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-controls="search-results">
+        <ul id="search-results" aria-label="Search results"></ul>
+      </div>
+      <button class="ghost" id="theme-toggle" hidden>Dark</button>
+    </div>
+  </div>
+</header>
+
+<div class="page with-rail">
+<aside class="rail">
+  <h2>On this page</h2>
+  <ol>
+    <li><a href="#terms">Terminology</a></li>
+    <li><a href="#indexer">Indexer semantics</a></li>
+    <li><a href="#confirm">Confirmation</a></li>
+    <li><a href="#reorg">Reorg behaviour</a></li>
+    <li><a href="#mempool">Mempool</a></li>
+    <li><a href="#fees">Fee and size</a></li>
+    <li><a href="#limits">Limits</a></li>
+    <li><a href="#security">Security considerations</a></li>
+    <li><a href="#checklist">Implementation checklist</a></li>
+  </ol>
+  <h2>Related</h2>
+  <ol>
+    <li><a href="specification.html">Numbered rules</a></li>
+    <li><a href="test-vectors.html">Test vectors</a></li>
+  </ol>
+</aside>
+
+<main id="main">
+
+<p class="eyebrow">Reference</p>
+<h1>Reference</h1>
+<p class="lede">Vocabulary, how state is actually derived, what happens when the chain reorganises, and what to
+  check before you ship an implementation.</p>
+
+<h2 id="terms">Terminology</h2>
+<dl class="kv">
+  <dt>Alkane</dt><dd>A contract, and by extension the token it issues. Identified by an <code>AlkaneId</code>.</dd>
+  <dt>AlkaneId</dt><dd>A pair of <code>u128</code> values written <code>block:tx</code>. The <code>block</code> half also encodes the id's kind, see <a href="specification.html#id">ID-3</a>.</dd>
+  <dt>Cellpack</dt><dd>The call payload: a target <code>AlkaneId</code> followed by inputs, LEB128 encoded. <code>inputs[0]</code> is the opcode by convention.</dd>
+  <dt>Cenotaph</dt><dd>A malformed runestone. Balances on the inputs are burned rather than transferred.</dd>
+  <dt>Edict</dt><dd>One transfer instruction: id, amount, destination output.</dd>
+  <dt>Fuel</dt><dd>The metering unit for contract execution. Budgeted per block and shared out per transaction by virtual size.</dd>
+  <dt>Message</dt><dd>The calldata field of a protostone. Carries the cellpack.</dd>
+  <dt>Metashrew</dt><dd>The indexing framework alkanes-rs builds on. A WebAssembly indexer program plus a key/value store plus view functions.</dd>
+  <dt>Outpoint</dt><dd>A transaction output, identified by txid and index. Balances are recorded against outpoints.</dd>
+  <dt>Pointer</dt><dd>The output index that receives a protostone's result on success. The Runes layer has its own separate pointer, tag 22.</dd>
+  <dt>Protoburn</dt><dd>A protostone that bridges Runes-layer balances into a sub-protocol. Parsed but not processed in the released indexer.</dd>
+  <dt>Protorune</dt><dd>The sub-protocol layer over Runes that protostones belong to. Originated outside this organisation.</dd>
+  <dt>Protostone</dt><dd>One record inside the runestone's tag 16383 field. Names a protocol tag and carries edicts, a message, or both.</dd>
+  <dt>Refund pointer</dt><dd>The output index that receives balances when a message fails.</dd>
+  <dt>Runestone</dt><dd>The <code>OP_RETURN</code> payload format that Alkanes rides inside. Originated outside this organisation, with the Runes protocol.</dd>
+  <dt>Sequence</dt><dd>A single global counter that assigns ids of the form <code>2:n</code> to newly deployed contracts.</dd>
+  <dt>Trace</dt><dd>The recorded execution of a protostone message, retrievable per outpoint or per block.</dd>
+  <dt>Virtual output</dt><dd>The shadow output index a protostone occupies, <code>N + 1 + i</code> for a transaction with <code>N</code> real outputs.</dd>
+</dl>
+
+<h2 id="indexer">Indexer semantics</h2>
+<p>Alkanes has no chain and no nodes of its own. State exists only because indexers derive it. alkanes-rs is
+  compiled to <code>wasm32-unknown-unknown</code> and run inside <strong>metashrew</strong>.</p>
+
+<figure class="figframe">
+  <svg viewBox="0 0 640 220" role="img" aria-labelledby="mshT mshD">
+    <title id="mshT">How alkanes-rs runs inside metashrew</title>
+    <desc id="mshD">A Bitcoin node feeds blocks to the metashrew sync engine. The sync engine calls the underscore start entry point of the alkanes WASM program once per block. The program reads and writes through host functions into a height-indexed key value store backed by a sparse Merkle tree. Read queries arrive separately as view function calls over JSON-RPC and run the same program in read-only mode.</desc>
+    <g font-family="ui-monospace, Menlo, Consolas, monospace" font-size="11.5">
+      <g stroke="var(--line-strong)" fill="var(--surface-2)" stroke-width="1">
+        <rect x="10" y="20" width="150" height="50" rx="3"/>
+        <rect x="10" y="130" width="150" height="50" rx="3"/>
+        <rect x="480" y="75" width="150" height="60" rx="3"/>
+      </g>
+      <rect x="200" y="20" width="240" height="50" rx="3" fill="var(--surface-2)" stroke="var(--line-strong)" stroke-width="1"/>
+      <rect x="200" y="130" width="240" height="50" rx="3" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.4"/>
+      <g fill="var(--ink)">
+        <text x="24" y="42">Bitcoin node</text><text x="24" y="58" fill="var(--muted)">blocks, hashes</text>
+        <text x="24" y="152">JSON-RPC client</text><text x="24" y="168" fill="var(--muted)">metashrew_view</text>
+        <text x="214" y="42">metashrew sync</text><text x="214" y="58" fill="var(--muted)">reorg check, rollback</text>
+        <text x="214" y="152">alkanes.wasm</text><text x="214" y="168" fill="var(--muted)">_start per block</text>
+        <text x="494" y="97">height-indexed</text><text x="494" y="113">key / value store</text><text x="494" y="129" fill="var(--muted)">SMT roots</text>
+      </g>
+    </g>
+    <g stroke="var(--bond)" stroke-width="1.5" fill="none" marker-end="url(#arr4)">
+      <path d="M164 45 L196 45"/>
+      <path d="M320 74 L320 126"/>
+      <path d="M164 155 L196 155"/>
+      <path d="M444 150 L470 118"/>
+      <path d="M444 45 L470 88"/>
+    </g>
+    <defs>
+      <marker id="arr4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" fill="var(--bond)"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>The indexer program is a pure function of the block sequence. The same blocks always produce the
+    same store, which is what makes independent indexers agree.</figcaption>
+</figure>
+
+<ul>
+  <li><strong>Entry point.</strong> The indexer program exports <code>_start</code>. metashrew calls it once per
+    block with the block data as input.</li>
+  <li><strong>Host interface.</strong> The program sees only
+    <code>__host_len</code>, <code>__load_input</code>, <code>__get</code>, <code>__get_len</code>,
+    <code>__flush</code>, and <code>__log</code>. That is the entire surface, which is why indexing is
+    deterministic.</li>
+  <li><strong>Storage.</strong> Writes are height-indexed and committed through a sparse Merkle tree, so every
+    height has a verifiable state root and historical state stays addressable.</li>
+  <li><strong>View functions.</strong> Reads run the same WASM program in a read-only mode against the store at
+    a chosen height. This is why a query can be answered "as of block N" rather than only as of the tip.</li>
+</ul>
+
+<h3 id="rpc">JSON-RPC surface</h3>
+<div class="tablewrap">
+  <table>
+    <caption>Methods metashrew exposes. Endpoint hosts are deployment specific and not published here.</caption>
+    <thead><tr><th>Method</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>metashrew_view</code></td><td>Call a named view function with input data at a height.</td></tr>
+      <tr><td><code>metashrew_height</code></td><td>The height the indexer has processed to.</td></tr>
+      <tr><td><code>metashrew_getblockhash</code></td><td>The block hash the indexer recorded for a height.</td></tr>
+      <tr><td><code>metashrew_stateroot</code></td><td>The state root at a height, for verifying two indexers agree.</td></tr>
+      <tr><td><code>metashrew_preview</code></td><td>Run a view against supplied block data without persisting anything.</td></tr>
+    </tbody>
+  </table>
+</div>
+<p>The alkanes view functions themselves are listed in the <a href="guide.html#read">guide</a>.</p>
+
+<h2 id="confirm">Confirmation</h2>
+<ul>
+  <li>Alkanes state changes when a block containing the transaction is indexed. There is no separate
+    protocol-level confirmation count, and no notion of a pending alkanes transfer at the protocol layer.</li>
+  <li>A transaction that is in the mempool has not changed alkanes state at all. It has no effect until it is
+    mined and indexed.</li>
+  <li>Because state is derived, "confirmed" means two things that can differ: the transaction has Bitcoin
+    confirmations, and an indexer has processed that height. Compare <code>metashrew_height</code> against the
+    node's tip before trusting a read.</li>
+  <li>The one confirmation constant in the protocol code belongs to the Runes layer: an etching commitment must
+    be at least <code>COMMIT_CONFIRMATIONS</code> = 6 confirmations old. It does not apply to alkanes transfers
+    or calls.</li>
+  <li>The Bitcoin Universe capability snapshot records no listing or settlement confirmation minimum for
+    alkanes, with the policy stated as: no supported mutation reaches confirmation or settlement.</li>
+</ul>
+
+<h2 id="reorg">Reorg behaviour</h2>
+<p>metashrew detects and repairs reorgs itself; alkanes-rs does not carry reorg logic.</p>
+<ol>
+  <li>On each sync step the engine compares local block hashes against the node's, walking back over a
+    configurable <code>reorg_check_threshold</code> window.</li>
+  <li>At the first height where the hashes differ, the store is rolled back to that height.</li>
+  <li>Indexing resumes from the height after the common ancestor and replays the new chain.</li>
+</ol>
+<p>Rollback removes the indexed data written above the target height, not only the metadata. An earlier version
+  deleted the height-to-hash and state-root keys but left the data written by the indexer program in place, which
+  could leave chain A rows visible while chain B was being indexed. That was fixed with a shared SMT rollback
+  implementation that identifies every key modified after the target height and restores it.</p>
+<div class="note">
+  <span class="t">What this means for you</span>
+  <p>An alkanes balance is exactly as final as the Bitcoin block that produced it. A reorg that removes the
+    block removes the balance change with it, cleanly. What is not automatic is anything an application built on
+    top of that read: the Bitcoin Universe snapshot records automatic reconciliation as false for alkanes,
+    because there is no executable order state to roll back.</p>
+</div>
+
+<h2 id="mempool">Mempool</h2>
+<ul>
+  <li>alkanes-rs indexes blocks. It has no mempool ingestion path, so unconfirmed transactions do not appear in
+    indexed state.</li>
+  <li><code>metashrew_preview</code> accepts hex block data that may be assembled from mempool transactions, and
+    runs a view against it without persisting. That is the supported way to answer "what would this do", and it
+    is a simulation, not state.</li>
+  <li>alkanes-rs also exposes <code>simulate</code> views that execute a cellpack without broadcasting. Use them
+    to check a call before paying for it.</li>
+  <li>Chained spends of unconfirmed alkanes outputs are therefore not visible to the index until the parent
+    confirms.</li>
+</ul>
+
+<h2 id="fees">Fee and size considerations</h2>
+<ul>
+  <li>A transfer protostone is small. The worked single-edict example is a <strong>16-byte</strong> script; a
+    contract call is <strong>17 bytes</strong>; a CREATE deployment instruction is <strong>14 bytes</strong>.
+    The <code>OP_RETURN</code> is almost never what makes an alkanes transaction expensive.</li>
+  <li>Deployment cost is dominated by the WASM binary in the witness. Witness data is discounted, and alkanes-rs
+    strips the first witness before computing virtual size for fuel purposes, so a large contract does not
+    consume a disproportionate share of the block's fuel budget.</li>
+  <li>Each alkane-bearing output must hold enough sats to be economically spendable later. An output at the dust
+    limit can become uneconomic to spend at higher fee rates, which is a slow way to strand a balance.</li>
+  <li>Relay policy for large <code>OP_RETURN</code> outputs is set by node operators, not by this protocol. If
+    you are pushing an unusually large payload, confirm your relay path rather than assuming it.</li>
+  <li>Fuel is not paid for in a token. There is no alkanes network token; fees are Bitcoin fees and compute is
+    bounded by the fuel budget.</li>
+</ul>
+
+<h2 id="limits">Limits</h2>
+<div class="tablewrap">
+  <table>
+    <thead><tr><th>Limit</th><th>Value</th><th>Where it comes from</th></tr></thead>
+    <tbody>
+      <tr><td>Bytes per script data push</td><td>520</td><td><code>MAX_SCRIPT_ELEMENT_SIZE</code></td></tr>
+      <tr><td>Payload bytes per protostone chunk</td><td>15</td><td>The 15-byte rule, to stay inside varint limits</td></tr>
+      <tr><td>Maximum varint length</td><td>18 bytes usable</td><td>Longer is a flaw and makes a cenotaph</td></tr>
+      <tr><td>Value range</td><td><code>u128</code></td><td>Ids, amounts, and cellpack inputs</td></tr>
+      <tr><td>Protostone virtual output ceiling</td><td><code>num_outputs + 100</code></td><td>Bounds message-bearing protostones per transaction</td></tr>
+      <tr><td>Pointer and refund pointer ceiling</td><td><code>num_outputs + num_protostones</code></td><td><code>process_message</code> validation</td></tr>
+      <tr><td>Nested call depth</td><td>75</td><td>Checkpoint depth guard</td></tr>
+      <tr><td>Contract memory</td><td>43,554,432 bytes</td><td><code>MEMORY_LIMIT</code></td></tr>
+      <tr><td>Block fuel, Bitcoin mainnet</td><td>100,000,000, then 1,000,000,000 from height 899,087</td><td><code>src/vm/fuel.rs</code></td></tr>
+      <tr><td>Minimum cellpack values</td><td>2</td><td>Target block and tx must both be present</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2 id="security">Security considerations</h2>
+<h3 id="sec-payload">Payload correctness is the main risk</h3>
+<p>The failure modes that actually cost people assets are all encoding mistakes, and none of them is visible on
+  chain. A wrong envelope strands the balance; a wrong protocol tag destroys it; a malformed edict body silently
+  does nothing. This is covered in full on the <a href="encoding.html#wrong">encoding page</a>, and it is worth
+  building payload verification into your signing flow rather than trusting your encoder.</p>
+
+<h3 id="sec-supply">Contracts can mint their own token without limit</h3>
+<p>The protocol permits a contract to transfer more of its own token than it holds. That is how issuance works,
+  and there is no protocol-level cap. Supply control lives entirely in contract code. Before treating an alkane
+  as scarce, read the contract, not the metadata.</p>
+
+<h3 id="sec-code">Code is not a guarantee of behaviour</h3>
+<p>Factory deployments share a template's code but keep their own storage and balances, and upgradeable patterns
+  exist in the standard library. An id that shares bytecode with a contract you trust is not thereby
+  trustworthy. Check the id, the deployment form, and any admin authority the contract exposes.</p>
+
+<h3 id="sec-determinism">Determinism is the security property</h3>
+<p>The sandbox has no network, no filesystem, no clock, and no randomness, and <code>wasmi</code> is a
+  deterministic interpreter. Any divergence between two indexers running the same version is a bug, and
+  comparing <code>metashrew_stateroot</code> at a height is the cheapest way to detect one. Do not run a
+  modified indexer and expect its state to be interoperable.</p>
+
+<h3 id="sec-dos">Denial of service is bounded by fuel, not by goodwill</h3>
+<p>Fuel budgets, the memory limit, the call depth guard, and the virtual output ceiling all exist to bound what
+  one transaction can cost an indexer. On failure the transaction's remaining fuel is drained rather than
+  returned, which removes the incentive to fail cheaply on purpose.</p>
+
+<h3 id="sec-report">Reporting</h3>
+<p>Report a vulnerability in this documentation or in the site itself privately through
+  <a href="https://github.com/bitcoinuniverseio/alkanes/security/advisories/new">GitHub security advisories</a>.
+  Issues in the protocol implementation belong in
+  <a href="https://github.com/bitcoinuniverseio/alkanes-rs">alkanes-rs</a>. Do not open a public issue for a
+  vulnerability.</p>
+
+<h2 id="checklist">Implementation checklist</h2>
+<p>For anyone writing an indexer, a wallet, or an encoder.</p>
+<h3 id="cl-encode">Encoding</h3>
+<ul>
+  <li>Emit <code>6a 5d</code>, then data pushes only, chunked at 520 bytes.</li>
+  <li>LEB128 twice, with the 15-byte little-endian chunking in between.</li>
+  <li>Record length is a value count, not a byte count.</li>
+  <li>Sort and delta-encode edict ids from <code>0:0</code>.</li>
+  <li>Keep the edict body a multiple of four.</li>
+  <li>Round-trip through your own decoder before signing.</li>
+</ul>
+<h3 id="cl-decode">Decoding</h3>
+<ul>
+  <li>Reject a runestone with a non-push opcode or an over-length varint as a cenotaph.</li>
+  <li>Stop the record loop on a protocol tag of <code>0</code>.</li>
+  <li>Fail the whole protostone list when a record length exceeds the values remaining.</li>
+  <li>Swallow the edict-body error into an empty list, matching the reference implementation exactly.</li>
+  <li>Expand tag 16383 values to exactly 15 bytes each, including the last one.</li>
+  <li>Ignore unrecognised protostone tags rather than failing.</li>
+</ul>
+<h3 id="cl-index">Indexing</h3>
+<ul>
+  <li>Assign all input balances to the first record with protocol tag 1, and only then process records in order.</li>
+  <li>Run each protostone's message before its edicts, and skip its edicts if the message refunded.</li>
+  <li>Clear every input's balance sheet once protostones were present, including for cenotaphs.</li>
+  <li>Do not process protoburns; the released indexer does not.</li>
+  <li>Honour the activation height, 880,000 on Bitcoin mainnet.</li>
+  <li>Skip the blacklisted transaction
+    <code>5cbb0c466dd08d7af9223d45105fbbf0fdc9fb7cda4831c183d6b0cb5ba60fb0</code>.</li>
+  <li>Verify against <code>metashrew_stateroot</code> rather than trusting your own output.</li>
+</ul>
+<h3 id="cl-display">Display</h3>
+<ul>
+  <li>Never assume a decimal scale. Divisibility is asset-defined and the registry records it that way.</li>
+  <li>Show the alkane id, not just a name. Names come from contract calls and are not unique.</li>
+  <li>Show what a payload will actually do, decoded, before a user signs it.</li>
+</ul>
+
+</main>
+</div>
+
+<footer class="sitefoot">
+  <div class="page">
+    <dl>
+      <div><dt>Owning repository</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes">bitcoinuniverseio/alkanes</a></dd></div>
+      <div><dt>Source of truth</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes-rs">bitcoinuniverseio/alkanes-rs</a></dd></div>
+      <div><dt>Spec version</dt><dd>alkanes-rs 2.2.1-rc.4</dd></div>
+      <div><dt>Lifecycle</dt><dd>Experimental</dd></div>
+      <div><dt>Chain and network</dt><dd>Bitcoin mainnet, regtest</dd></div>
+      <div><dt>Last verified</dt><dd><time datetime="2026-09-01">1 September 2026</time></dd></div>
+    </dl>
+    <p class="footlinks">
+      <a href="https://github.com/bitcoinuniverseio/alkanes/edit/main/reference.html">Edit this page on GitHub</a>
+      <a href="https://docs.bitcoinuniverse.io">docs.bitcoinuniverse.io</a>
+      <a href="llms.txt">llms.txt</a>
+      <a href="changelog.html">Document changelog</a>
+    </p>
+    <p>Documentation source path: <code>reference.html</code>.</p>
+  </div>
+</footer>
+</body>
+</html>

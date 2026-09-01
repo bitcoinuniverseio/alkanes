@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Page not found | Alkanes</title>
+<meta name="description" content="That page does not exist in the Alkanes protocol documentation. Here is where the encoding, specification, guide, reference, and test vectors actually live.">
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://bitcoinuniverseio.github.io/alkanes/404.html">
+<link rel="search-base" href="/alkanes/">
+<meta name="theme-color" content="#fbfcfb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#04161c" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/alkanes/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/alkanes/theme.css">
+<script src="/alkanes/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead-in">
+    <a class="wordmark" href="/alkanes/">
+      <svg width="34" height="20" viewBox="0 0 34 20" aria-hidden="true" focusable="false">
+        <path d="M2 15 L9 5 L16 15 L23 5 L30 15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="23" cy="5" r="3.2" fill="var(--accent)"/>
+      </svg>
+      Alkanes <small>protocol docs</small>
+    </a>
+    <nav aria-label="Primary">
+      <a href="/alkanes/">Overview</a>
+      <a href="/alkanes/encoding.html">Encoding</a>
+      <a href="/alkanes/specification.html">Specification</a>
+      <a href="/alkanes/guide.html">Guide</a>
+      <a href="/alkanes/reference.html">Reference</a>
+      <a href="/alkanes/test-vectors.html">Test vectors</a>
+      <a href="/alkanes/tool.html">Tool</a>
+      <a href="/alkanes/changelog.html">Changelog</a>
+    </nav>
+    <div class="mast-tools">
+      <div class="search-wrap" id="search-wrap" hidden>
+        <span class="slash" aria-hidden="true">/</span>
+        <label class="skip" for="search-input">Search this documentation</label>
+        <input id="search-input" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-controls="search-results">
+        <ul id="search-results" aria-label="Search results"></ul>
+      </div>
+      <button class="ghost" id="theme-toggle" hidden>Dark</button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<div class="page">
+
+<section class="hero">
+  <div class="hero-grid">
+    <div>
+      <p class="eyebrow">404</p>
+      <h1>No bond here</h1>
+      <p class="lede">That page does not exist. Nothing is broken on your end, and no link on this site should
+        have brought you here. If one did, please say so.</p>
+      <div class="btnrow">
+        <a class="btn solid" href="/alkanes/">Start at the overview</a>
+        <a class="btn" href="https://github.com/bitcoinuniverseio/alkanes/issues/new">Report a broken link</a>
+      </div>
+    </div>
+    <figure class="figframe">
+      <svg viewBox="0 0 400 160" role="img" aria-labelledby="brokenT brokenD">
+        <title id="brokenT">A bond-line chain with a missing bond</title>
+        <desc id="brokenD">A zig-zag chain of five vertices where the third bond is missing, leaving a gap in the middle of the structure.</desc>
+        <g fill="none" stroke="var(--bond)" stroke-width="2" stroke-linecap="round">
+          <path d="M40 110 L100 55 M108 55 L168 110"/>
+          <path d="M232 110 L292 55 M300 55 L360 110"/>
+        </g>
+        <g stroke="var(--line-strong)" stroke-width="2" stroke-dasharray="5 6" fill="none">
+          <path d="M176 110 L224 110"/>
+        </g>
+        <circle cx="200" cy="110" r="5" fill="none" stroke="var(--warn)" stroke-width="2"/>
+      </svg>
+      <figcaption>A chain with a bond missing is not a molecule, and a URL with a typo is not a page.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<h2 id="where">Where everything lives</h2>
+<div class="grid c2">
+  <div class="card">
+    <h3><a href="/alkanes/encoding.html">Payload encoding</a></h3>
+    <p>The byte layout of a protostone, with worked examples. If you came looking for how to build a transfer,
+      this is the page.</p>
+  </div>
+  <div class="card">
+    <h3><a href="/alkanes/specification.html">Specification</a></h3>
+    <p>Numbered rules covering the envelope, protocol tag, edicts, cellpacks, execution, state transitions, and
+      invalid conditions.</p>
+  </div>
+  <div class="card">
+    <h3><a href="/alkanes/guide.html">Guide</a></h3>
+    <p>Transfer, call, and deploy, plus what Bitcoin Universe products actually support.</p>
+  </div>
+  <div class="card">
+    <h3><a href="/alkanes/reference.html">Reference</a></h3>
+    <p>Terminology, indexer semantics, reorg and mempool behaviour, limits, and security considerations.</p>
+  </div>
+  <div class="card">
+    <h3><a href="/alkanes/test-vectors.html">Test vectors</a></h3>
+    <p>Valid and invalid vectors with expected outcomes.</p>
+  </div>
+  <div class="card">
+    <h3><a href="/alkanes/tool.html">Protostone tool</a></h3>
+    <p>Encode an edict or decode a script hex, entirely in your browser.</p>
+  </div>
+</div>
+<p>Search is in the header, and pressing <kbd>/</kbd> anywhere focuses it.</p>
+
+</div>
+</main>
+
+<footer class="sitefoot">
+  <div class="page">
+    <dl>
+      <div><dt>Owning repository</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes">bitcoinuniverseio/alkanes</a></dd></div>
+      <div><dt>Source of truth</dt><dd><a href="https://github.com/bitcoinuniverseio/alkanes-rs">bitcoinuniverseio/alkanes-rs</a></dd></div>
+      <div><dt>Spec version</dt><dd>alkanes-rs 2.2.1-rc.4</dd></div>
+      <div><dt>Lifecycle</dt><dd>Experimental</dd></div>
+      <div><dt>Chain and network</dt><dd>Bitcoin mainnet, regtest</dd></div>
+      <div><dt>Last verified</dt><dd><time datetime="2026-09-01">1 September 2026</time></dd></div>
+    </dl>
+    <p class="footlinks">
+      <a href="https://github.com/bitcoinuniverseio/alkanes/edit/main/404.html">Edit this page on GitHub</a>
+      <a href="https://docs.bitcoinuniverse.io">docs.bitcoinuniverse.io</a>
+      <a href="/alkanes/llms.txt">llms.txt</a>
+    </p>
+    <p>Documentation source path: <code>404.html</code>.</p>
+  </div>
+</footer>
+</body>
+</html>
