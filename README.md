@@ -1,5 +1,13 @@
 # Alkanes protocol documentation
 
+## Indexer recovery and freshness
+
+Consumers must distinguish a running Alkanes API from a ready, current indexer.
+During recovery, honor the readiness response and checkpoint: an upstream
+behind the stored ledger waits for catch-up without rewinding that ledger.
+The reader's height compatibility path uses only the configured Universe-owned
+Alkanes runtime and preserves the shared Bitcoin RPC scope and all data guards.
+
 Authoritative documentation for **Alkanes**, a Bitcoin metaprotocol that runs WebAssembly smart contracts over
 Bitcoin. Token balances are carried as protorunes inside protostones, and a protostone rides inside a runestone
 in an `OP_RETURN` output.
