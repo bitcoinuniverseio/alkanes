@@ -7,7 +7,7 @@ During recovery, honor the readiness response and checkpoint: an upstream
 behind the stored ledger waits for catch-up without rewinding that ledger.
 The reader's height compatibility path uses only the configured Universe-owned
 Alkanes runtime and preserves the shared Bitcoin RPC scope and all data guards.
-Automated release checks use the primary Universe-owned self-hosted fleet;
+Automated release checks use available approved Universe-owned self-hosted infrastructure;
 a runner disconnect before tests run does not count as a verified release.
 
 Authoritative documentation for **Alkanes**, a Bitcoin metaprotocol that runs WebAssembly smart contracts over
