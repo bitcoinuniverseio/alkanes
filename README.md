@@ -78,6 +78,18 @@ deployed and proven."
 Third-party wallets and marketplaces are outside this organisation's code, so this documentation makes no claim
 about them either way.
 
+## Universe indexing recovery
+
+As of 7 October 2026, the Universe Alkanes mainnet state producer is running and
+replaying from protocol genesis at block 880000 using Universe-operated Bitcoin
+infrastructure. Successful indexing establishes recovery progress, not complete
+historical coverage or readiness of every product capability. Consumers must
+respect checkpoint, lag and publication guards while the replay catches up.
+
+See the [current public recovery notes](https://github.com/bitcoinuniverseio/docs-alkanes/blob/develop/README.md#state-producer-recovery-7-october-2026).
+This operational status does not change the protocol specification or the
+unsupported Marketplace mutation capabilities listed above.
+
 ## Facts that are commonly stated wrongly
 
 - Amounts are raw `u128` base units. Divisibility is **asset-defined**; there is no fixed decimal scale.
