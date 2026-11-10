@@ -7,8 +7,9 @@ During recovery, honor the readiness response and checkpoint: an upstream
 behind the stored ledger waits for catch-up without rewinding that ledger.
 The reader's height compatibility path uses only the configured Universe-owned
 Alkanes runtime and preserves the shared Bitcoin RPC scope and all data guards.
-Automated release checks use available approved Universe-owned self-hosted infrastructure;
-a runner disconnect before tests run does not count as a verified release.
+This repository has no GitHub Actions validation workflow. Until an approved
+runner is configured, validate changes locally before publishing; a runner
+disconnect before checks run does not count as a verified release.
 
 Authoritative documentation for **Alkanes**, a Bitcoin metaprotocol that runs WebAssembly smart contracts over
 Bitcoin. Token balances are carried as protorunes inside protostones, and a protostone rides inside a runestone
@@ -133,6 +134,15 @@ favicon.svg  og.svg
 
 Every ordinary page works with JavaScript disabled. JavaScript only adds search, the theme toggle, and the
 protostone tool. To work on the site, open the files directly or serve the directory with any static server.
+
+For changes to the JavaScript or JSON files, check their syntax locally:
+
+```sh
+node --check site.js
+node --check protostone.js
+python3 -m json.tool docs.manifest.json > /dev/null
+python3 -m json.tool search-index.json > /dev/null
+```
 
 `search-index.json` is generated from the page headings. If you add or rename a heading, regenerate it rather
 than editing it by hand.
